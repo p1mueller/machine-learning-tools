@@ -1,3 +1,5 @@
+"""Module for handling the Injection Molding Dataset."""
+
 import pandas as pd
 
 from ml_tools.datasets.base import DatasetBase
@@ -7,7 +9,7 @@ from ml_tools.utils import get_data_folder
 class InjectionMoldingDataset(DatasetBase):
     """Class to handle the Injection Molding Dataset."""
 
-    def __init__(self):
+    def __init__(self):  # noqa: D107
         base = "InjectionMolding_{}.csv"
         data_folder = get_data_folder()
         self._train_file = data_folder / base.format("Train")

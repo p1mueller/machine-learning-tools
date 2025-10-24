@@ -1,3 +1,5 @@
+"""Plotting utilities for model adequacy."""
+
 import abc
 
 import matplotlib.pyplot as plt
@@ -204,7 +206,6 @@ class StandardizedResidualPlotter(TukeyAnscombePlotter):
 
     def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
         """Internal method to plot the standardized residuals on the given Axes object."""
-        # TODO: maybe add lower and upper percentile lines
         super()._plot(ax, masks)
         t = self._config.t_threshold
         ax.axhline(-t, color=self._config.colors.outlier_edge, linestyle="--")
@@ -375,6 +376,8 @@ class ResidualCorrelationPlotter(TukeyAnscombePlotter):
 
 
 class VIFPlotter(Plotter):
+    """Plotter for Variance Inflation Factor (VIF)."""
+
     def __init__(
         self,
         vif: pd.DataFrame | np.ndarray,

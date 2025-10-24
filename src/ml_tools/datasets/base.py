@@ -1,3 +1,5 @@
+"""Base class for datasets."""
+
 import abc
 
 import numpy as np
@@ -12,9 +14,11 @@ class DatasetBase:
     @property
     @abc.abstractmethod
     def train_data(self) -> tuple[Data, Data]:
+        """Return training data as a tuple of (features, targets)."""
         pass
 
     @property
     @abc.abstractmethod
     def test_data(self) -> tuple[Data, Data]:
+        """Return test data as a tuple of (features, targets)."""
         pass

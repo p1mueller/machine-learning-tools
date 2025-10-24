@@ -1,3 +1,5 @@
+"""Module for identifying problematic samples in regression analysis."""
+
 from functools import cached_property
 
 import numpy as np
@@ -9,6 +11,8 @@ from ml_tools.mac.metric import MetricSummary
 
 
 class ProblematicSampleMasks(BaseModel):
+    """Masks identifying problematic samples in regression analysis."""
+
     outliers: Np1DArray = Field(description="Boolean mask indicating outlier samples")
     high_leverage: Np1DArray = Field(description="Boolean mask indicating high leverage samples")
     influential: Np1DArray = Field(
@@ -16,7 +20,7 @@ class ProblematicSampleMasks(BaseModel):
     )
 
     @classmethod
-    def from_metric_summary(
+    def from_metric_summary(  # noqa: D102
         cls, metric: MetricSummary, config: MACConfig
     ) -> "ProblematicSampleMasks":
         n_samples = metric.n_samples

@@ -1,3 +1,5 @@
+"""Metrics for regression analysis."""
+
 import abc
 from functools import cached_property
 
@@ -9,12 +11,16 @@ from ml_tools.mac.fit import FitSummary
 
 
 class Metric:
+    """Base class for regression metrics."""
+
     @property
     def name(self):
+        """Name of the metric."""
         return self.__class__.__name__
 
     @cached_property
     def value(self):
+        """Compute and cache the metric value."""
         return self._compute()
 
     @abc.abstractmethod
@@ -24,7 +30,15 @@ class Metric:
 
 
 class Leverage(Metric):
+    """Compute leverage values for each sample."""
+
     def __init__(self, data: np.ndarray, add_intercept: bool = True) -> None:
+        """Initialize.
+
+        Args:
+            data: Input feature matrix.
+            add_intercept: Whether to add an intercept term to the data.
+        """
         self.data = data
         self.add_intercept = add_intercept
 
@@ -37,71 +51,62 @@ class Leverage(Metric):
 
 
 class RSS(Metric):
-    def __init__(self, residuals: np.ndarray) -> None:
+    """Compute Residual Sum of Squares (RSS) metric."""
+
+    def __init__(self, residuals: np.ndarray) -> None:  # noqa: D107
         self.residuals = residuals
+
+    @property
+    def n_samples(self) -> np.ndarray:  # noqa: D102
+        return self.residuals.shape[0]
 
     def _compute(self) -> float:
         rss = np.sum(self.residuals**2)
         return rss.item()
 
 
-class RSESquared(Metric):
-    def __init__(self, rss: RSS, dof: int) -> None:
-        self._metric = rss
+class RSE(Metric):
+    """Compute Residual Standard Error (RSE) metric."""
+
+    def __init__(self, rss_metric: RSS, dof: int) -> None:  # noqa: D107
+        self._metric = rss_metric
         self.dof = dof
 
     @classmethod
-    def from_residuals(cls, residuals: np.ndarray, dof: int) -> "RSESquared":
-        rss_metric = RSS(residuals)
-        return cls(rss_metric, dof)
-
-    @property
-    def residuals(self) -> np.ndarray:
-        return self._metric.residuals
-
-    @property
-    def rss(self) -> float:
-        return self._metric.value
-
-    def _compute(self) -> float:
-        n_samples = self.residuals.shape[0]
-        rss = np.sum(self.residuals**2)
-        rse2 = rss / (n_samples - self.dof)
-        return rse2.item()
-
-
-class RSE(Metric):
-    def __init__(self, rse2_metric: RSESquared) -> None:
-        self._metric = rse2_metric
-
-    @classmethod
     def from_residuals(cls, residuals: np.ndarray, dof: int) -> "RSE":
-        return cls(RSESquared.from_residuals(residuals, dof))
+        """Create RSE metric from residuals.
+
+        Args:
+            residuals: Residuals from the regression model.
+            dof: Degrees of freedom (including bias)
+        """
+        return cls(RSS(residuals), dof)
 
     @property
-    def rss(self) -> float:
-        return self._metric.rss
-
-    @property
-    def dof(self) -> int:
-        return self._metric.dof
-
-    @property
-    def residuals(self) -> np.ndarray:
-        return self._metric.residuals
-
-    @cached_property
-    def squared_value(self) -> float:
+    def rss(self) -> float:  # noqa: D102
         return self._metric.value
 
+    @property
+    def residuals(self) -> np.ndarray:  # noqa: D102
+        return self._metric.residuals
+
     def _compute(self) -> float:
-        rse2 = self._metric.value
-        return np.sqrt(rse2).item()
+        rss = self._metric.value
+        rse = np.sqrt(rss / (self._metric.n_samples - self.dof))
+        return rse.item()
 
 
 class StandardizedResiduals(Metric):
-    def __init__(self, rse_metric: RSE, leverage: Leverage) -> None:
-        self._rse = rse_metric
+    r"""Compute t standardized residuals for each sample.
+
+    Standardized residuals are calculated as:
+    $$
+    r_i = \frac{e_i}{\hat{\varsigma} \sqrt{1 - h_{ii}}}
+    $$
+    """
+
+    def __init__(self, rse: RSE, leverage: Leverage) -> None:  # noqa: D107
+        self._rse = rse
         self._leverage = leverage
 
     @classmethod
@@ -112,28 +117,36 @@ class StandardizedResiduals(Metric):
         data: np.ndarray,
         add_intercept: bool = True,
     ) -> "StandardizedResiduals":
+        """Create Standardized Residuals metric from residuals.
+
+        Args:
+            residuals: Residuals from the regression model.
+            dof: Degrees of freedom (including bias)
+            data: Input feature matrix used in the regression.
+            add_intercept: Whether to add an intercept term to the data.
+        """
         rse_metric = RSE.from_residuals(residuals, dof)
         leverage_metric = Leverage(data, add_intercept)
         return cls(rse_metric, leverage_metric)
 
     @property
-    def residuals(self) -> np.ndarray:
+    def residuals(self) -> np.ndarray:  # noqa: D102
         return self._rse.residuals
 
     @property
-    def rss(self) -> float:
+    def rss(self) -> float:  # noqa: D102
         return self._rse.rss
 
     @property
-    def rse(self) -> float:
+    def rse(self) -> float:  # noqa: D102
         return self._rse.value
 
     @property
-    def leverage(self) -> np.ndarray:
+    def leverage(self) -> np.ndarray:  # noqa: D102
         return self._leverage.value
 
     @property
-    def dof(self) -> int:
+    def dof(self) -> int:  # noqa: D102
         return self._rse.dof
 
     def _compute(self) -> np.ndarray:
@@ -144,7 +157,16 @@ class StandardizedResiduals(Metric):
 
 
 class CooksDistance(Metric):
-    def __init__(self, standardized_residuals: StandardizedResiduals) -> None:
+    r"""Compute Cook's Distance for each sample.
+
+    Cook's Distance measures the influence of each data point on the fitted regression model.
+    $$
+    D_i &= \frac{r_i^2}{p} \cdot \frac{h_{ii}}{1 - h_{ii}} \\
+    &= \frac{e_i^2}{p \hat{\varsigma}^2} \cdot \frac{h_{ii}}{(1 - h_{ii})^2}
+    $$
+    """
+
+    def __init__(self, standardized_residuals: StandardizedResiduals) -> None:  # noqa: D107
         self._std_resid = standardized_residuals
 
     @classmethod
@@ -155,27 +177,35 @@ class CooksDistance(Metric):
         data: np.ndarray,
         add_intercept: bool = True,
     ) -> "CooksDistance":
+        """Create Cook's Distance metric from residuals.
+
+        Args:
+            residuals: Residuals from the regression model.
+            dof: Degrees of freedom (including bias)
+            data: Input feature matrix used in the regression.
+            add_intercept: Whether to add an intercept term to the data.
+        """
         std_resid_metric = StandardizedResiduals.from_residuals(residuals, dof, data, add_intercept)
         return cls(std_resid_metric)
 
     @property
-    def standardized_residuals(self) -> np.ndarray:
+    def standardized_residuals(self) -> np.ndarray:  # noqa: D102
         return self._std_resid.value
 
     @property
-    def leverage(self) -> np.ndarray:
+    def leverage(self) -> np.ndarray:  # noqa: D102
         return self._std_resid.leverage
 
     @property
-    def dof(self) -> int:
+    def dof(self) -> int:  # noqa: D102
         return self._std_resid.dof
 
     @property
-    def rss(self) -> float:
+    def rss(self) -> float:  # noqa: D102
         return self._std_resid.rss
 
     @property
-    def rse(self) -> float:
+    def rse(self) -> float:  # noqa: D102
         return self._std_resid.rse
 
     def _compute(self) -> np.ndarray:
@@ -183,7 +213,13 @@ class CooksDistance(Metric):
 
 
 class VarianceInflectionFactor(Metric):
+    """Compute Variance Inflation Factor (VIF) for each feature.
+
+    Bias term will be included in VIF calculation. Make sure to exclude it from data if not needed.
+    """
+
     def __init__(self, data: np.ndarray) -> None:
+        """Initialize."""
         self.data = data
 
     def _compute(self) -> np.ndarray:
@@ -203,18 +239,26 @@ class VarianceInflectionFactor(Metric):
 
 
 class ResidualCorrelation(Metric):
-    def __init__(self, residuals: np.ndarray, offset: int = 1) -> None:
+    """Compute the correlation between residuals and their lagged values."""
+
+    def __init__(self, residuals: np.ndarray, lag: int = 1) -> None:
+        """Initialize.
+
+        Args:
+            residuals: Residuals from the regression model.
+            lag: Lag value for computing correlation.
+        """
         self._residuals = residuals
-        self._offset = offset
+        self._lag = lag
 
     def _compute(self) -> float:
-        return correlation(self._residuals[: -self._offset], self._residuals[self._offset :])
+        return correlation(self._residuals[: -self._lag], self._residuals[self._lag :])
 
 
 class MetricSummary:
     """Summary of various regression metrics."""
 
-    def __init__(self, summary: FitSummary):
+    def __init__(self, summary: FitSummary):  # noqa: D107
         self._summary = summary
         self.cook_metric = CooksDistance.from_residuals(
             summary.residuals, summary.dof, summary.x, summary.has_intercept
@@ -223,46 +267,43 @@ class MetricSummary:
         self._residual_correlation = ResidualCorrelation(summary.residuals)
 
     @property
-    def n_samples(self) -> int:
+    def n_samples(self) -> int:  # noqa: D102
         return self._summary.n_samples
 
     @property
-    def dof(self) -> int:
+    def dof(self) -> int:  # noqa: D102
         return self._summary.dof
 
     @property
-    def leverage(self) -> np.ndarray:
-        return self.cook_metric.leverage
-
-    @property
-    def rss(self) -> float:
+    def rss(self) -> float:  # noqa: D102
         return self.cook_metric.rss
 
     @property
-    def rse(self) -> float:
+    def rse(self) -> float:  # noqa: D102
         return self.cook_metric.rse
 
     @property
-    def leverage(self) -> np.ndarray:
+    def leverage(self) -> np.ndarray:  # noqa: D102
         return self.cook_metric.leverage
 
     @property
-    def standardized_residuals(self) -> np.ndarray:
+    def standardized_residuals(self) -> np.ndarray:  # noqa: D102
         return self.cook_metric.standardized_residuals
 
     @property
-    def cooks_distance(self) -> np.ndarray:
+    def cooks_distance(self) -> np.ndarray:  # noqa: D102
         return self.cook_metric.value
 
     @property
-    def residual_correlation(self) -> float:
+    def residual_correlation(self) -> float:  # noqa: D102
         return self._residual_correlation.value
 
     @property
-    def vif(self) -> np.ndarray:
+    def vif(self) -> np.ndarray:  # noqa: D102
         return self.vif_metric.value
 
     def pretty_vif(self, predictor_names: list[str] | None = None) -> str:
+        """Create a pretty DataFrame of VIF values."""
         if predictor_names is None:
             predictor_names = self._summary.predictor_names
         df = pd.DataFrame(self.vif, columns=["VIF"], index=predictor_names)
@@ -274,6 +315,13 @@ def cooks_distance(
     leverage: np.ndarray,
     dof: int,
 ) -> np.ndarray:
+    """Compute Cook's distance from standardized residuals.
+
+    Args:
+        normed_residuals: Standardized residuals.
+        leverage: Leverage values.
+        dof: Degrees of freedom (including bias)
+    """
     cook_dist = normed_residuals**2 / dof * leverage / (1 - leverage + 1e-12)
     return cook_dist
 
@@ -283,6 +331,13 @@ def standardized_residuals_from_cook(
     leverage: np.ndarray,
     dof: int,
 ) -> np.ndarray:
+    """Compute standardized residuals from Cook's distance.
+
+    Args:
+        cook_distance: Cook's distance values.
+        leverage: Leverage values.
+        dof: Degrees of freedom (including bias)
+    """
     normed_residuals_squared = cook_distance * dof * (1 - leverage) / (leverage + 1e-12)
     normed_residuals = np.sqrt(normed_residuals_squared)
     return normed_residuals

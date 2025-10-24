@@ -1,3 +1,5 @@
+"""Auto Dataset."""
+
 import pandas as pd
 
 from ml_tools.datasets.injection_molding import InjectionMoldingDataset
@@ -8,6 +10,12 @@ class AutoDataset(InjectionMoldingDataset):
     """Class to handle the Injection Molding Dataset."""
 
     def __init__(self, response_name: str | None = "mpg"):
+        """Initialize.
+
+        Args:
+            response_name (str | None): Name of the response variable.
+                If None, 'mpg' is used.
+        """
         super().__init__()
         base = "Auto.csv"
         data_folder = get_data_folder()

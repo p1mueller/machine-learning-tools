@@ -1,3 +1,5 @@
+"""MAC main analysis class."""
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
@@ -9,7 +11,9 @@ from ml_tools.mac.metric import MetricSummary
 
 
 class ModelAdequacyChecker:
-    def __init__(self, config: MACConfig | None = None):
+    """Performs model adequacy checking for linear regression models."""
+
+    def __init__(self, config: MACConfig | None = None):  # noqa: D107
         if config is None:
             config = get_default_config()
         self._config = config
@@ -20,9 +24,19 @@ class ModelAdequacyChecker:
         y: np.ndarray,
         model: LinearRegression,
         y_pred: np.ndarray | None = None,
-        plot: bool = True,
         predictor_names: list[str] | None = None,
+        plot: bool = True,
     ):
+        """Analyze a scikit-learn LinearRegression model fit.
+
+        Args:
+            x: Feature matrix used for fitting the model.
+            y: Ground truth values.
+            model: Fitted scikit-learn LinearRegression model.
+            y_pred: Predicted target values. If None, will be computed using the model.
+            predictor_names: Optional list of predictor names. If None, default names will be used.
+            plot: Whether to generate diagnostic plots.
+        """
         if predictor_names is None:
             predictor_names = [f"x{i}" for i in range(x.shape[1])]
         if y_pred is None:
@@ -45,10 +59,10 @@ class ModelAdequacyChecker:
     def analyze(
         self, summary: FitSummary, plot: bool = True
     ) -> tuple[MetricSummary, ProblematicSampleMasks]:
+        """Analyze the model fit summary and optionally plot diagnostic plots."""
         metric = MetricSummary(summary)
         masks = ProblematicSampleMasks.from_metric_summary(metric, self._config)
 
-        # TODO: find outliers, high leverage points, cook
         if plot:
             vif_df = metric.pretty_vif(summary.predictor_names)
             plotters = [

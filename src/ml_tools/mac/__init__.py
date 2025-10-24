@@ -1,0 +1,1 @@
+"""Model adequacy checking package."""

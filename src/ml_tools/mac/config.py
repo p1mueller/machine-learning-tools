@@ -1,9 +1,13 @@
+"""Configuration module for MAC analysis and plotting."""
+
 from pydantic import BaseModel, Field
 
 Color = str | tuple[float, float, float] | tuple[float, float, float, float]
 
 
 class Colors(BaseModel):
+    """Color configuration for MAC plots."""
+
     marker: Color = Field("#00000000", description="Marker color")
     marker_edge: Color = Field("#0C273A", description="Marker edge color")
     bar: Color = Field("#0C273A", description="Bar color")
@@ -20,6 +24,8 @@ class Colors(BaseModel):
 
 
 class MACConfig(BaseModel):
+    """Configuration for MAC analysis and plotting."""
+
     t_threshold: float = Field(3.5, description="Threshold for t-statistics to identify outliers")
     leverage_threshold_factor: float = Field(
         5.0, gt=1.0, description="Factor to determine leverage threshold for high leverage points"

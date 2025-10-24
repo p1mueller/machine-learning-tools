@@ -1,3 +1,5 @@
+"""Example of using ModelAdequacyChecker on the Advertising dataset with interaction terms."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import LinearRegression

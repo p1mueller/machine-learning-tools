@@ -1,3 +1,5 @@
+"""Example of using ModelAdequacyChecker with an injection molding dataset and a linear regression model."""
+
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 

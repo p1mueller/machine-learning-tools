@@ -1,3 +1,5 @@
+"""Data model for summarizing fitted regression models."""
+
 from functools import cached_property
 
 import numpy as np

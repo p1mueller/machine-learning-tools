@@ -1,3 +1,5 @@
+"""Module for handling the Advertising Dataset."""
+
 from ml_tools.datasets.injection_molding import InjectionMoldingDataset
 from ml_tools.utils import get_data_folder
 
@@ -5,7 +7,7 @@ from ml_tools.utils import get_data_folder
 class AdvertisingDataset(InjectionMoldingDataset):
     """Class to handle the Injection Molding Dataset."""
 
-    def __init__(self):
+    def __init__(self):  # noqa D107
         super().__init__()
         base = "Advertising.csv"
         data_folder = get_data_folder()
