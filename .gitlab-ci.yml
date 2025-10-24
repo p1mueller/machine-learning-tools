@@ -10,10 +10,13 @@ variables:
   UV_LINK_MODE: copy
 
 stages:
+  - build
   - test
   - deploy
 
 uv:
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  stage: build
   variables:
     UV_CACHE_DIR: .uv-cache
   cache:
