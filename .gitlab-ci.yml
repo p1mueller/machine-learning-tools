@@ -1,0 +1,45 @@
+variables:
+  TARGET_BRANCH: main
+  UV_VERSION: "0.9"
+  PYTHON_VERSION: "3.12"
+  BASE_LAYER: bookworm-slim
+  QUALITY_REPORT: "code-quality-report.json"
+  TEST_REPORT: "test-report.xml"
+  # GitLab CI creates a separate mountpoint for the build directory,
+  # so we need to copy instead of using hard links.
+  UV_LINK_MODE: copy
+
+stages:
+  - test
+  - deploy
+
+uv:
+  variables:
+    UV_CACHE_DIR: .uv-cache
+  cache:
+    - key:
+        files:
+          - uv.lock
+      paths:
+        - $UV_CACHE_DIR
+  script:
+    - uv sync
+    - uv cache prune --ci
+
+lint:
+  extends: uv
+  stage: test
+  script:
+    - uv run ruff check --output-format=gitlab > $QUALITY_REPORT
+  artifacts:
+    reports:
+      codequality: $QUALITY_REPORT
+
+pytest:
+  extends: uv
+  stage: test
+  script:
+    - uv run pytest -v --junitxml=$TEST_REPORT
+  artifacts:
+    reports:
+      junit: $TEST_REPORT
