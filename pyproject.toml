@@ -23,11 +23,6 @@ build-backend = "uv_build"
 [tool.ruff.format]
 line-ending = "auto"
 
-[dependency-groups]
-dev = [
-    "jupyter>=1.1.1",
-]
-
 [tool.ruff]
 line-length = 100
 target-version = "py38"
@@ -38,3 +33,9 @@ ignore = ["E203", "E501", "D105", "D202", "D203", "D213"]
 #
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.14.2",
+]
