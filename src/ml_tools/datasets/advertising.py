@@ -1,22 +1,22 @@
 """Module for handling the Advertising Dataset."""
 
-from ml_tools.datasets.injection_molding import InjectionMoldingDataset
-from ml_tools.utils import get_data_folder
+from ml_tools.datasets.base import MonoDataset
 
 
-class AdvertisingDataset(InjectionMoldingDataset):
+class AdvertisingDataset(MonoDataset):
     """Class to handle the Injection Molding Dataset."""
 
-    def __init__(self):  # noqa D107
-        super().__init__()
-        base = "Advertising.csv"
-        data_folder = get_data_folder()
-        self._train_file = data_folder / base
-        self._test_file = self._train_file  # Using the same file for test for demonstration
+    file_name: str = "Advertising.csv"
+
+    def _load_file(self, file):
+        df = super()._load_file(file)
+        df = df.drop(df.columns[0], axis=1)
+        return df
 
     def _load(self) -> None:
         super()._load()
-        self.predictor_names = self.raw_train_data.columns[1:-1].tolist()
+        self.predictor_names = self.raw_train_data.columns[:-1].tolist()
+        self.response_name = self.raw_train_data.columns[-1]
 
 
 if __name__ == "__main__":
@@ -34,3 +34,5 @@ if __name__ == "__main__":
 
     train_data = dataset.raw_train_data
     test_data = dataset.raw_test_data
+
+    print(x_train.columns.to_list(), dataset.predictor_names)

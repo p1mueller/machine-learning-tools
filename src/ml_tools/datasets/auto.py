@@ -2,26 +2,24 @@
 
 import pandas as pd
 
-from ml_tools.datasets.injection_molding import InjectionMoldingDataset
-from ml_tools.utils import get_data_folder
+from ml_tools.datasets.base import MonoDataset
 
 
-class AutoDataset(InjectionMoldingDataset):
+class AutoDataset(MonoDataset):
     """Class to handle the Injection Molding Dataset."""
 
-    def __init__(self, response_name: str | None = "mpg"):
+    file_name = "Auto.csv"
+
+    def __init__(self, response_name: str | None = "mpg", split: int = 0.7):
         """Initialize.
 
         Args:
             response_name (str | None): Name of the response variable.
                 If None, 'mpg' is used.
+            split: Fraction of data used for training
         """
-        super().__init__()
-        base = "Auto.csv"
-        data_folder = get_data_folder()
+        super().__init__(split=split)
         self._response_name = response_name
-        self._train_file = data_folder / base
-        self._test_file = self._train_file  # Using the same file for test for demonstration
 
     def _load_file(self, file_path: str):
         df = super()._load_file(file_path)
@@ -60,5 +58,3 @@ if __name__ == "__main__":
     train_data = dataset.raw_train_data
     test_data = dataset.raw_test_data
     print(dataset.predictor_names)
-    assert not train_data.isna().values.any()
-    assert not test_data.isna().values.any()
