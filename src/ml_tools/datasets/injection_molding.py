@@ -20,8 +20,11 @@ class InjectionMoldingDataset(MonoDataset):
     def _load(self) -> None:
         self.raw_train_data = self._load_file(self._train_file)
         self.raw_test_data = self._load_file(self._test_file)
-        self.predictor_names = self.raw_train_data.columns[0:-1].tolist()
-        self.response_name = self.raw_train_data.columns[-1]
+        raw = self.raw_train_data
+        if raw is None:
+            raise RuntimeError("Training data was not loaded.")
+        self.predictor_names = [str(c) for c in raw.columns[:-1]]
+        self.response_name = str(raw.columns[-1])
 
     @property
     @override
@@ -40,5 +43,6 @@ if __name__ == "__main__":
 
     train_data = dataset.raw_train_data
     test_data = dataset.raw_test_data
-    assert not train_data.isna().values.any()
-    assert not test_data.isna().values.any()
+    if train_data is not None and test_data is not None:
+        assert not train_data.isna().values.any()
+        assert not test_data.isna().values.any()
