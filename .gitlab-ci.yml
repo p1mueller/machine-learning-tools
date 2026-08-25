@@ -5,6 +5,7 @@ variables:
   BASE_LAYER: bookworm-slim
   QUALITY_REPORT: "code-quality-report.json"
   TEST_REPORT: "test-report.xml"
+  COVERAGE_REPORT: "coverage-report.xml"
   # GitLab CI creates a separate mountpoint for the build directory,
   # so we need to copy instead of using hard links.
   UV_LINK_MODE: copy
@@ -12,7 +13,6 @@ variables:
 stages:
   - build
   - test
-  - deploy
 
 uv:
   image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
@@ -26,7 +26,7 @@ uv:
       paths:
         - $UV_CACHE_DIR
   script:
-    - uv sync
+    - uv sync --frozen
     - uv cache prune --ci
 
 lint:
@@ -43,6 +43,11 @@ pytest:
   stage: test
   script:
     - uv run pytest -v --junitxml=$TEST_REPORT
+      --cov=ml_tools --cov-report=term-missing --cov-report=xml:$COVERAGE_REPORT
+      --cov-fail-under=80
   artifacts:
     reports:
       junit: $TEST_REPORT
+      coverage_report:
+        coverage_format: cobertura
+        path: $COVERAGE_REPORT
