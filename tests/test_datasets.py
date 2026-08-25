@@ -14,9 +14,8 @@ def _check_dataset(
     response: str,
     train_samples: int,
     test_samples: int,
-    check_unique: bool = True,
 ) -> None:
-    assert dataset.raw_test_data is None
+    assert dataset.raw_train_data is None
     assert dataset.raw_test_data is None
     assert dataset.predictor_names is None
     assert dataset.response_name is None
@@ -35,9 +34,8 @@ def _check_dataset(
     assert x_test.shape == (test_samples, len(predictors))
     assert y_test.shape == x_test.shape[:1]
 
-    if check_unique:
-        dist = np.linalg.norm(np.array(x_train)[:, None] - np.array(x_test)[None], axis=2)
-        assert dist.min() > 1e-12
+    dist = np.linalg.norm(np.array(x_train)[:, None] - np.array(x_test)[None], axis=2)
+    assert dist.min() > 1e-12
 
 
 def test_injection() -> None:
@@ -76,10 +74,9 @@ def test_auto() -> None:
     """Check auto dataset."""
     split = 0.8
     train_samples = 315
-    test_samples = 80
+    test_samples = 77
     response = "mpg"
-    columns = [
-        "mpg",
+    predictors = [
         "cylinders",
         "displacement",
         "horsepower",
@@ -87,12 +84,9 @@ def test_auto() -> None:
         "acceleration",
         "year",
         "origin",
-        "name",
     ]
-    predictors = columns.copy()
-    predictors.remove(response)
     dataset = ds.AutoDataset(split=split)
-    _check_dataset(dataset, predictors, response, train_samples, test_samples, check_unique=False)
+    _check_dataset(dataset, predictors, response, train_samples, test_samples)
 
 
 if __name__ == "__main__":

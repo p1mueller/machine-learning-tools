@@ -4,7 +4,7 @@ import numpy as np
 import statsmodels.api as sm
 from pytest import fixture
 from sklearn.linear_model import LinearRegression
-from statsmodels.regression.linear_model import OLSResults
+from statsmodels.regression.linear_model import RegressionResultsWrapper
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 from ml_tools.mac.metric import (
@@ -39,7 +39,7 @@ def _basic_data():
     return _sample_data()
 
 
-def _fit_statsmodel(x: np.ndarray, y: np.ndarray) -> OLSResults:
+def _fit_statsmodel(x: np.ndarray, y: np.ndarray) -> RegressionResultsWrapper:
     """Fit an OLS model and return the fitted model."""
     result = sm.OLS(y, x).fit()
     return result
@@ -50,7 +50,7 @@ def _fit_sklearn(x: np.ndarray, y: np.ndarray):
     return model
 
 
-def _get_residuals(data) -> np.ndarray:
+def _get_residuals(data) -> tuple[np.ndarray, RegressionResultsWrapper]:
     x, y, _ = data
     result = _fit_statsmodel(x, y)
     residuals = result.resid
@@ -128,7 +128,7 @@ def test_standardized_residuals(basic):
 
 
 def test_cooks_distance(basic):
-    """Test Standardized Residuals metric against statsmodels OLS implementation."""
+    """Test Cook's Distance metric against statsmodels OLS implementation."""
     residuals, result = _get_residuals(basic)
     metric = CooksDistance.from_residuals(
         residuals, dof=result.df_model, data=basic[0], add_intercept=False
