@@ -9,8 +9,14 @@ wheels/
 # Virtual environments
 .venv
 
+# Test / coverage artifacts
+.coverage
+report.xml
+.pytest_cache/
+.ruff_cache/
+ty-reports/
+
 *.ipynb
-uv.lock
 studs/
 .vscode
 .python-version

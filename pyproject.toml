@@ -1,7 +1,7 @@
 [project]
 name = "ml-tools"
 version = "0.1.0"
-description = "Add your description here"
+description = "Model adequacy checking and utility datasets for linear regression."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,7 +23,7 @@ line-ending = "auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "D", "I"]
@@ -34,7 +34,8 @@ convention = "google"
 
 [dependency-groups]
 dev = [
-    "pyqt6>=6.9.1",
     "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.2",
+    "ty>=0.0.74",
 ]
