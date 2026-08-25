@@ -38,6 +38,12 @@ lint:
     reports:
       codequality: $QUALITY_REPORT
 
+typecheck:
+  extends: uv
+  stage: test
+  script:
+    - uv run ty check src
+
 pytest:
   extends: uv
   stage: test
