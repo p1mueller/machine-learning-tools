@@ -59,11 +59,11 @@ to only get the numbers. Thresholds and styling are configurable via `MACConfig`
 
 ## Datasets
 
-| Dataset                | Response                | Split      |
-|------------------------|-------------------------|------------|
-| `AdvertisingDataset`   | `sales`                 | `split=`   |
-| `AutoDataset`          | `mpg` (default)         | `split=`   |
-| `InjectionMoldingDataset` | `mass`               | fixed 150/82 |
+| Dataset                   | Response        | Split        |
+| ------------------------- | --------------- | ------------ |
+| `AdvertisingDataset`      | `sales`         | `split=`     |
+| `AutoDataset`             | `mpg` (default) | `split=`     |
+| `InjectionMoldingDataset` | `mass`          | fixed 150/82 |
 
 ```python
 from ml_tools.datasets import AutoDataset
@@ -76,9 +76,10 @@ x_test, y_test = dataset.test_data
 ## Development
 
 ```bash
-uv run ruff check .     # lint
-uv run ty check src     # type check
-uv run pytest           # tests
+uv run ruff check .                                    # lint
+uv run ty check src                                    # type check
+uv run pytest --cov=ml_tools --cov-report=term-missing # tests
+
 ```
 
 ## License
