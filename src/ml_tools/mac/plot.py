@@ -30,7 +30,7 @@ def _compute_color_values(
     return colors
 
 
-class Plotter:
+class Plotter(abc.ABC):
     """Abstract base class for plotters."""
 
     def __init__(self, config: MACConfig | None) -> None:
@@ -71,6 +71,7 @@ class Plotter:
         if self._config.grid_show:
             ax.grid(True, alpha=self._config.grid_alpha)
             ax.set_axisbelow(self._config.grid_below)
+        assert isinstance(fig, plt.Figure)
         return fig, ax
 
 
@@ -145,7 +146,7 @@ class ScatterPlotter(Plotter):
             self._masked_scatter(mask, ax, color, edgecolor, label=label, annotate=True)
         ax.legend()
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the scatter plot on the given Axes object."""
         if masks is None:
             ax.scatter(
@@ -180,7 +181,7 @@ class TukeyAnscombePlotter(ScatterPlotter):
         """Initialize."""
         super().__init__(fitted_values, residuals, config)
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the residuals on the given Axes object."""
         super()._plot(ax, masks)
         if self.target_line is not None:
@@ -204,7 +205,7 @@ class StandardizedResidualPlotter(TukeyAnscombePlotter):
         """Initialize."""
         super().__init__(fitted_values, standardized_residuals, config)
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the standardized residuals on the given Axes object."""
         super()._plot(ax, masks)
         t = self._config.t_threshold
@@ -229,7 +230,7 @@ class ScaleLocationPlotter(TukeyAnscombePlotter):
         scale_loc = np.sqrt(np.abs(standardized_residuals))
         super().__init__(fitted_values, scale_loc, config)
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the Scale-Location on the given Axes object."""
         super()._plot(ax, masks)
         t = np.sqrt(self._config.t_threshold)
@@ -262,7 +263,7 @@ class QQPlotter(ScatterPlotter):
         theoretical_quants = sorted_theoretical_quants[inverse_sorted_indices]
         super().__init__(theoretical_quants, standardized_residuals, config)
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the QQ plot on the given Axes object."""
         super()._plot(ax, masks)
         ax.axline((0, 0), slope=1, color=self._config.colors.target, linestyle="--")
@@ -297,7 +298,7 @@ class SensitivityPlotter(ScatterPlotter):
         levels = ticker.tick_values(cook_lims[0], cook_lims[1])
         if levels[0] < 1e-12:
             levels = levels[1:]
-        return levels
+        return np.asarray(levels)
 
     def _plot_cook_contours(self, ax: plt.Axes) -> np.ndarray:
         leverage_range = Range(self._x)
@@ -326,12 +327,13 @@ class SensitivityPlotter(ScatterPlotter):
 
         # Label contour lines
         lines = ax.get_lines()
-        labelLines(lines, zorder=1, xvals=leverage_range.quantile(0.9), fontsize=8)
+        label_lines_x = [float(v) for v in np.atleast_1d(leverage_range.quantile(0.9))]
+        labelLines(lines, zorder=1, xvals=label_lines_x, fontsize=8)
         for line in lines:
             line.set_label("_nolegend_")
         return leverage_border
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the sensitivity plot on the given Axes object."""
         residuals_range = Range(self._y)
         residuals_border = residuals_range.padded_range()
@@ -345,8 +347,8 @@ class SensitivityPlotter(ScatterPlotter):
         ax.axvline(leverage_threshold, color=self._config.colors.high_leverage_edge, linestyle="--")
         super()._plot(ax, masks)
 
-        ax.set_xlim(leverage_border)
-        ax.set_ylim(residuals_border)
+        ax.set_xlim(tuple(leverage_border.tolist()))
+        ax.set_ylim(tuple(residuals_border.tolist()))
 
 
 class ResidualCorrelationPlotter(TukeyAnscombePlotter):
@@ -369,7 +371,7 @@ class ResidualCorrelationPlotter(TukeyAnscombePlotter):
         super().__init__(time, residuals, config)
         self._correlation = correlation
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the residuals vs index on the given Axes object."""
         super()._plot(ax, masks)
         ax.set_title(self.title + r" ($\rho = " + f"{self._correlation:.3f}$)")
@@ -389,7 +391,7 @@ class VIFPlotter(Plotter):
         if isinstance(vif, np.ndarray):
             if predictor_names is None:
                 predictor_names = [f"x{i}" for i in range(vif.shape[0])]
-            vif = pd.DataFrame(vif, columns=["VIF"], index=predictor_names)
+            vif = pd.Series(vif, index=predictor_names, name="VIF").to_frame()
         if "VIF" not in vif.columns:
             raise ValueError("VIF DataFrame must contain a 'VIF' column.")
         self._vif = vif
@@ -400,7 +402,7 @@ class VIFPlotter(Plotter):
         height = n_predictors * config.bar_height + config.plot_bloat_height
         return (config.base_width, height)
 
-    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None) -> None:
+    def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
         """Internal method to plot the VIF on the given Axes object."""
 
         cmap = LinearSegmentedColormap.from_list(

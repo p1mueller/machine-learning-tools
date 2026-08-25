@@ -39,6 +39,6 @@ class Range:
             borders = np.clip(borders, bounds[0], bounds[1])
         return borders
 
-    def quantile(self, q: np.ndarray) -> np.ndarray:
+    def quantile(self, q: float | np.ndarray) -> np.ndarray:
         """Get the quantile value(s) within the range."""
         return self._min + q * self.diff()

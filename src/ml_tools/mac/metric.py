@@ -2,6 +2,7 @@
 
 import abc
 from functools import cached_property
+from typing import Any, override
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from sklearn.linear_model import LinearRegression
 from ml_tools.mac.fit import FitSummary
 
 
-class Metric:
+class Metric(abc.ABC):
     """Base class for regression metrics."""
 
     @property
@@ -24,9 +25,8 @@ class Metric:
         return self._compute()
 
     @abc.abstractmethod
-    def _compute(self):
+    def _compute(self) -> Any:
         """Compute the metric value."""
-        pass
 
 
 class Leverage(Metric):
@@ -42,7 +42,8 @@ class Leverage(Metric):
         self.data = data
         self.add_intercept = add_intercept
 
-    def _compute(self) -> float:
+    @override
+    def _compute(self) -> np.ndarray:
         x = self.data
         if self.add_intercept:
             x = np.concatenate((np.ones((x.shape[0], 1)), x), axis=1)
@@ -215,7 +216,7 @@ class CooksDistance(Metric):
 class VarianceInflectionFactor(Metric):
     """Compute Variance Inflation Factor (VIF) for each feature.
 
-    Bias term will be included in VIF calculation. Make sure to exclude it from data if not needed.
+    An intercept is included implicitly; it does not affect the computed values.
     """
 
     def __init__(self, data: np.ndarray) -> None:
@@ -302,12 +303,12 @@ class MetricSummary:
     def vif(self) -> np.ndarray:  # noqa: D102
         return self.vif_metric.value
 
-    def pretty_vif(self, predictor_names: list[str] | None = None) -> str:
+    def pretty_vif(self, predictor_names: list[str] | None = None) -> pd.DataFrame:
         """Create a pretty DataFrame of VIF values."""
         if predictor_names is None:
             predictor_names = self._summary.predictor_names
-        df = pd.DataFrame(self.vif, columns=["VIF"], index=predictor_names)
-        return df
+        series = pd.Series(self.vif, index=predictor_names, name="VIF")
+        return series.to_frame()
 
 
 def cooks_distance(
