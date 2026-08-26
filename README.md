@@ -82,6 +82,19 @@ uv run pytest --cov=ml_tools --cov-report=term-missing # tests
 uv run mkdocs serve                                    # docs (auto-reload, :8000)
 ```
 
+### Pre-commit hooks
+
+Run [pre-commit](https://pre-commit.com/) once to wire lint, format and type
+checks into every commit:
+
+```bash
+pre-commit install        # runs on `git commit`
+pre-commit run --all-files  # run all hooks on the whole repo
+```
+
+The hooks (`.pre-commit-config.yaml`) cover YAML/TOML validity, trailing
+whitespace + end-of-file fixes, `ruff` lint + format, and `ty` type checking.
+
 ## License
 
 See `LICENSE`.
