@@ -19,6 +19,7 @@ theme:
   features:
     - navigation.sections
     - navigation.top
+    - navigation.indexes
     - content.code.copy
     - search.highlight
 
@@ -35,8 +36,30 @@ plugins:
   - autorefs
   - mkdocstrings:
       default_handler: python
-  - mkdocs-autoapi:
-      autoapi_dir: src/ml_tools
+      handlers:
+        python:
+          paths:
+            - src
+          options:
+            filters: ["!^_"]
+            heading_level: 1
+            merge_init_into_class: true
+            parameter_headings: true
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            summary: true
+  - api-autonav:
+      modules: ["src/ml_tools"]
+      module_options: {}
+      nav_section_title: "API Reference"
+      api_root_uri: "reference"
+      nav_item_prefix: "<code class='doc-symbol doc-symbol-nav'></code>"
+      exclude_private: true
+      show_full_namespace: false
+      on_implicit_namespace_package: "warn"
 
 nav:
   - Home: index.md

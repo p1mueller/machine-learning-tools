@@ -62,11 +62,9 @@ pytest:
 pages:
   extends: uv
   stage: publish
+  script:
+    - uv run mkdocs build --strict --site-dir public
+  pages:
+    publish: public
   rules:
     - if: "$CI_COMMIT_BRANCH == $TARGET_BRANCH"
-  script:
-    - uv run mkdocs build --strict
-  artifacts:
-    paths:
-      - site
-  pages: true

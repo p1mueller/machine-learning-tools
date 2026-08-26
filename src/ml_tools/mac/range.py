@@ -2,11 +2,13 @@
 
 import numpy as np
 
+Axis = int | tuple[int, ...] | None
+
 
 class Range:
     """Class for summarizing value ranges along a specified axis."""
 
-    def __init__(self, values: np.ndarray, axis=0, padding: float = 0.05) -> None:
+    def __init__(self, values: np.ndarray, axis: Axis = 0, padding: float = 0.05) -> None:
         """Initialize.
 
         Args:

@@ -10,13 +10,15 @@ publication-ready diagnostic plots.
 
 ## Features
 
-- **One-call analysis** — `[ModelAdequacyChecker][ml_tools.ModelAdequacyChecker]`
-  (`MAC`) turns a fitted model into metrics, masks and plots.
+- **One-call analysis** —
+  [ModelAdequacyChecker](reference/ml_tools/mac/analyze/#ml_tools.mac.analyze.ModelAdequacyChecker) (`MAC`) turns a fitted
+  model into metrics, masks and plots.
 - **Diagnostic plots** — Tukey-Anscombe, scale-location, normal Q-Q, sensitivity
   (Cook's-distance contours), residual autocorrelation, and VIF bar chart.
-- **Built-in datasets** — `[AdvertisingDataset][ml_tools.datasets.AdvertisingDataset]`,
-  `[AutoDataset][ml_tools.datasets.AutoDataset]` and
-  `[InjectionMoldingDataset][ml_tools.datasets.InjectionMoldingDataset]`,
+- **Built-in datasets** —
+  [AdvertisingDataset](reference/ml_tools/datasets/advertising/),
+  [AutoDataset](reference/ml_tools/datasets/auto/) and
+  [InjectionMoldingDataset](reference/ml_tools/datasets/injection_molding/),
   loaded lazily and split into train/test.
 
 ## Installation
@@ -33,4 +35,3 @@ uv sync          # installs dependencies + an editable copy of the package
 
 - Walk through a full example in the [Getting started](getting_started.md) guide.
 - See the bundled [Datasets](datasets.md) and pick one to analyze.
-- Browse the generated [API reference](api.md).

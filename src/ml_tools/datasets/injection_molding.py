@@ -17,7 +17,8 @@ class InjectionMoldingDataset(MonoDataset):
 
     file_name: str = "InjectionMolding_{}.csv"
 
-    def __init__(self):  # noqa: D107
+    @override
+    def __init__(self):
         super().__init__()
         data_folder = get_data_folder()
         self._train_file = data_folder / self.file_name.format("Train")
