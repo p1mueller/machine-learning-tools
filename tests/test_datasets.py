@@ -1,6 +1,7 @@
 """Test for datasets module."""
 
 import numpy as np
+import pandas as pd
 import pytest
 
 import ml_tools.datasets as ds
@@ -87,6 +88,65 @@ def test_auto() -> None:
     ]
     dataset = ds.AutoDataset(split=split)
     _check_dataset(dataset, predictors, response, train_samples, test_samples)
+
+
+def test_auto_response_fallback() -> None:
+    """A None response defaults to the last numeric column, excluding it from features."""
+    dataset = ds.AutoDataset(response_name=None)
+    x_train, y_train = dataset.train_data
+    # last numeric column is "origin"
+    assert dataset.response_name == "origin"
+    assert dataset.predictor_names is not None
+    assert "origin" not in dataset.predictor_names
+    assert len(dataset.predictor_names) == 7
+
+
+def test_auto_rejects_non_numeric_response() -> None:
+    """A non-numeric or unknown response column is rejected."""
+    for bad in ("name", "nonsense"):
+        with pytest.raises(ValueError):
+            ds.AutoDataset(response_name=bad).train_data
+
+
+def _assert_no_nulls(x: pd.DataFrame, y: pd.Series) -> None:
+    """Assert a feature frame and its labels contain no missing values."""
+    assert not np.any(x.isna().to_numpy())
+    assert not np.any(y.isna().to_numpy())
+
+
+def test_advertising_has_no_nulls() -> None:
+    """Advertising data has no missing values in either split."""
+    dataset = ds.AdvertisingDataset()
+    _assert_no_nulls(*dataset.train_data)
+    _assert_no_nulls(*dataset.test_data)
+
+
+def test_injection_has_no_nulls() -> None:
+    """Injection molding data has no missing values in either split."""
+    dataset = ds.InjectionMoldingDataset()
+    _assert_no_nulls(*dataset.train_data)
+    _assert_no_nulls(*dataset.test_data)
+
+
+def test_auto_drops_missing_values() -> None:
+    """Auto data contains '?' (NaN) cells; rows with missing values are dropped from both splits."""
+    dataset = ds.AutoDataset(split=0.8)
+    x_train, y_train = dataset.train_data
+    x_test, y_test = dataset.test_data
+    _assert_no_nulls(x_train, y_train)
+    _assert_no_nulls(x_test, y_test)
+
+
+def test_load_returns_self_and_is_cached() -> None:
+    """load() is idempotent and returns the dataset for chaining."""
+    dataset = ds.AdvertisingDataset()
+    assert dataset.load() is dataset
+    # loading twice must not raise and must not re-split data
+    first = dataset.train_data
+    assert dataset.load() is dataset
+    x_train, y_train = dataset.train_data
+    assert first[0].equals(x_train)
+    assert first[1].equals(y_train)
 
 
 if __name__ == "__main__":

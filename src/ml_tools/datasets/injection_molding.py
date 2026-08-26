@@ -37,19 +37,3 @@ class InjectionMoldingDataset(MonoDataset):
     @override
     def is_loaded(self) -> bool:
         return self.raw_train_data is not None and self.raw_test_data is not None
-
-
-if __name__ == "__main__":
-    dataset = InjectionMoldingDataset()
-    x_train, y_train = dataset.train_data
-    x_test, y_test = dataset.test_data
-    print("Train features shape:", x_train.shape)
-    print("Train labels shape:", y_train.shape)
-    print("Test features shape:", x_test.shape)
-    print("Test labels shape:", y_test.shape)
-
-    train_data = dataset.raw_train_data
-    test_data = dataset.raw_test_data
-    if train_data is not None and test_data is not None:
-        assert not train_data.isna().values.any()
-        assert not test_data.isna().values.any()

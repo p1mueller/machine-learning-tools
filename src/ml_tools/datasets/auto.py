@@ -54,23 +54,3 @@ class AutoDataset(MonoDataset):
             raise ValueError(f"Response column '{response}' is not numeric.")
         self.response_name = response
         self.predictor_names = [c for c in numeric_columns if c != response]
-
-
-if __name__ == "__main__":
-    dataset = AutoDataset()
-    x_train, y_train = dataset.train_data
-    x_test, y_test = dataset.test_data
-
-    train = dataset.raw_train_data
-    if train is not None:
-        print("Auto Dataset")
-        print(train.head())
-
-    print("Train features shape:", x_train.shape)
-    print("Train labels shape:", y_train.shape)
-    print("Test features shape:", x_test.shape)
-    print("Test labels shape:", y_test.shape)
-
-    train_data = dataset.raw_train_data
-    test_data = dataset.raw_test_data
-    print(dataset.predictor_names)
