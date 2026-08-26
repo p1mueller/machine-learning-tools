@@ -12,6 +12,7 @@ wheels/
 # Test / coverage artifacts
 .coverage
 report.xml
+.install-test/
 .pytest_cache/
 .ruff_cache/
 ty-reports/
