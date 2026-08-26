@@ -36,6 +36,10 @@ convention = "google"
 
 [dependency-groups]
 dev = [
+    "mkdocs>=1.6",
+    "mkdocs-autoapi>=0.4.1",
+    "mkdocs-material>=9.6",
+    "mkdocstrings[python]>=0.29",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.2",

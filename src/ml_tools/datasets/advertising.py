@@ -8,7 +8,11 @@ from ml_tools.datasets.base import MonoDataset
 
 
 class AdvertisingDataset(MonoDataset):
-    """Class to handle the Advertising Dataset."""
+    """Advertising campaign dataset (ISLR, 200 observations).
+
+    Predictors: daily `TV`, `radio` and `newspaper` advertising budgets.
+    Response: `sales`, the regional product sales in thousands of dollars.
+    """
 
     file_name: str = "Advertising.csv"
 

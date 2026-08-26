@@ -1,0 +1,44 @@
+site_name: ml-tools
+site_description: Model adequacy checking and utility datasets for linear regression.
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      default_handler: python
+  - mkdocs-autoapi:
+      autoapi_dir: src/ml_tools
+
+nav:
+  - Home: index.md
+  - Getting started: getting_started.md
+  - Datasets: datasets.md

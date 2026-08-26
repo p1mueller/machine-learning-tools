@@ -8,7 +8,12 @@ from ml_tools.datasets.base import MonoDataset
 
 
 class AutoDataset(MonoDataset):
-    """Class to handle the Auto MPG Dataset."""
+    """Auto-mpg fleet dataset (UCI/statlearning, 392 observations).
+
+    Predictors: `cylinders`, `displacement`, `horsepower`, `weight`,
+    `acceleration`, `year` and `origin`.
+    Response: `mpg`, the miles per gallon fuel consumption.
+    """
 
     file_name = "Auto.csv"
 

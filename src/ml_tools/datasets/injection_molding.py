@@ -7,7 +7,13 @@ from ml_tools.utils import get_data_folder
 
 
 class InjectionMoldingDataset(MonoDataset):
-    """Class to handle the Injection Molding Dataset."""
+    """Injection molding process dataset (232 observations, fixed split).
+
+    Predictors: 8 selected process variables and principal component scores
+    (powder activity, injection position/volume, pressures, hop temperature,
+    clamp force/position, oil temperature).
+    Response: `mass`, the part mass in grams.
+    """
 
     file_name: str = "InjectionMolding_{}.csv"
 

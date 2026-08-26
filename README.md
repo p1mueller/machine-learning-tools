@@ -75,7 +75,7 @@ x_test, y_test = dataset.test_data
 uv run ruff check .                                    # lint
 uv run ty check src                                    # type check
 uv run pytest --cov=ml_tools --cov-report=term-missing # tests
-
+uv run mkdocs serve                                    # docs (auto-reload, :8000)
 ```
 
 ## License

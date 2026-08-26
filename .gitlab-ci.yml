@@ -13,6 +13,7 @@ variables:
 stages:
   - build
   - test
+  - publish
 
 uv:
   image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
@@ -57,3 +58,15 @@ pytest:
       coverage_report:
         coverage_format: cobertura
         path: $COVERAGE_REPORT
+
+pages:
+  extends: uv
+  stage: publish
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $TARGET_BRANCH"
+  script:
+    - uv run mkdocs build --strict
+  artifacts:
+    paths:
+      - site
+  pages: true
