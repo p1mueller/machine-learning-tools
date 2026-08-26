@@ -300,6 +300,68 @@ class MetricSummary:
         return self._residual_correlation.value
 
     @property
+    def tss(self) -> float:
+        """Total Sum of Squares: sum of squared deviations of the response from its mean."""
+        y = self._summary.y_true
+        y_mean = y.mean()
+        return float(np.sum((y - y_mean) ** 2))
+
+    @property
+    def r_squared(self) -> float:
+        r"""Coefficient of determination $R^2 = 1 - \frac{\text{RSS}}{\text{TSS}}$.
+
+        Uses the centered decomposition (unbiased estimator of the mean
+        response). For models fitted without an intercept, the uncentered
+        definition $R^2 = 1 - \frac{\text{RSS}}{\sum y^2}$ is used, matching
+        statsmodels.
+        Returns NaN for a constant response, where R² is undefined.
+        """
+        if self._summary.has_intercept:
+            tss = self.tss
+        else:
+            tss = float(np.sum(self._summary.y_true**2))
+        if tss <= 0:
+            return float("nan")
+        return 1.0 - self.rss / tss
+
+    @property
+    def adj_r_squared(self) -> float:
+        r"""Adjusted R²: $1 - \left(1 - R^2\right)\frac{n - 1}{n - p}$.
+
+        `n` is the number of samples and `p` the number of fitted parameters
+        (including the intercept).
+        """
+        n = self.n_samples
+        p = self.dof
+        if n <= p:
+            return float("nan")
+        return 1.0 - (1.0 - self.r_squared) * (n - 1) / (n - p)
+
+    @property
+    def f_statistic(self) -> float:
+        r"""F-statistic for the model: $\frac{\text{SSR}/k}{\text{RSS}/(n - p)}$.
+
+        `k` is the number of slopes (fitted parameters excluding the
+        intercept), so that the value matches statsmodels' `fvalue`.
+        The explained sum of squares uses the centered decomposition
+        (tss - rss) with an intercept and the uncentered one (sum of squared
+        fitted values) without.
+        Returns NaN when no slopes are fitted, when the residual degrees of
+        freedom do not exceed the number of parameters, or when the residual
+        sum of squares is zero.
+        """
+        n = self.n_samples
+        p = self.dof
+        k = p - 1 if self._summary.has_intercept else p
+        if k <= 0 or n <= p or self.rss <= 0:
+            return float("nan")
+        if self._summary.has_intercept:
+            ssr = self.tss - self.rss
+        else:
+            ssr = float(np.sum(self._summary.y_pred**2))
+        return (ssr / k) / (self.rss / (n - p))
+
+    @property
     def vif(self) -> np.ndarray:  # noqa: D102
         return self.vif_metric.value
 

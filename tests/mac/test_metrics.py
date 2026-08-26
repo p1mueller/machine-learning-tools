@@ -7,12 +7,14 @@ from sklearn.linear_model import LinearRegression
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
+from ml_tools.mac.fit import FitSummary
 from ml_tools.mac.metric import (
     RSE,
     RSS,
     CooksDistance,
     Leverage,
     Metric,
+    MetricSummary,
     ResidualCorrelation,
     StandardizedResiduals,
     VarianceInflectionFactor,
@@ -164,6 +166,92 @@ def test_residual_correlation(basic):
     metric = ResidualCorrelation(residuals, lag=1)
     expected_value = np.corrcoef(residuals[:-1], residuals[1:])[0, 1]
     assert np.isclose(metric.value, expected_value)
+
+
+def _metric_summary(x: np.ndarray, y: np.ndarray) -> MetricSummary:
+    """Build a MetricSummary for a model with an intercept, like analyze_sklearn."""
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    summary = FitSummary(
+        x=x,
+        y_true=y,
+        y_pred=result.fittedvalues,
+        dof=int(result.df_model) + 1,  # n_features + intercept, as in analyze_sklearn
+        has_intercept=True,
+        predictor_names=[f"x{i}" for i in range(x.shape[1])],
+    )
+    return MetricSummary(summary)
+
+
+def test_tss(basic):
+    """Test Total Sum of Squares against statsmodels."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    expected = result.ess + result.ssr
+    metric = _metric_summary(x, y)
+    assert np.isclose(metric.tss, expected)
+
+
+def test_r_squared(basic):
+    """Test R^2 against statsmodels, including the constant-response case."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    metric = _metric_summary(x, y)
+    assert np.isclose(metric.r_squared, result.rsquared)
+
+    constant = _metric_summary(np.random.randn(20, 2), np.full(20, 7.0) + np.zeros(20))
+    assert np.isnan(constant.r_squared)
+
+
+def test_adj_r_squared(basic):
+    """Test adjusted R^2 against statsmodels, including the p >= n case."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    metric = _metric_summary(x, y)
+    assert np.isclose(metric.adj_r_squared, result.rsquared_adj)
+
+    many_features = _metric_summary(np.random.randn(3, 5), np.random.randn(3))
+    assert np.isnan(many_features.adj_r_squared)
+
+
+def test_f_statistic(basic):
+    """Test the F-statistic against statsmodels' fvalue."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    metric = _metric_summary(x, y)
+    assert np.isclose(metric.f_statistic, result.fvalue)
+
+
+def test_f_statistic_no_intercept(basic):
+    """Test the F-statistic for a model without an intercept."""
+    x, y, _ = basic
+    result = sm.OLS(y, x).fit()
+    summary = FitSummary(
+        x=x,
+        y_true=y,
+        y_pred=result.fittedvalues,
+        dof=int(result.df_model),
+        has_intercept=False,
+        predictor_names=[f"x{i}" for i in range(x.shape[1])],
+    )
+    metric = MetricSummary(summary)
+    assert np.isclose(metric.f_statistic, result.fvalue)
+    # uncentered R^2 without intercept, matching statsmodels
+    assert np.isclose(metric.r_squared, result.rsquared)
+
+
+def test_f_statistic_perfect_fit(basic):
+    """A perfect fit (zero RSS) returns NaN for the F-statistic."""
+    x, y, _ = basic
+    summary = FitSummary(
+        x=x,
+        y_true=y,
+        y_pred=y,  # zero residuals
+        dof=x.shape[1] + 1,
+        has_intercept=True,
+        predictor_names=[f"x{i}" for i in range(x.shape[1])],
+    )
+    metric = MetricSummary(summary)
+    assert np.isnan(metric.f_statistic)
 
 
 if __name__ == "__main__":
