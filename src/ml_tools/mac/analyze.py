@@ -85,9 +85,53 @@ class ModelAdequacyChecker:
         )
         return self.analyze(summary, plot=plot)
 
-    # TODO:
-    # def analyze_statsmodels(self, data: pd.DataFrame, model):
-    #     pass
+    def analyze_statsmodels(
+        self,
+        x: pd.DataFrame | np.ndarray,
+        y: pd.Series | np.ndarray,
+        model: Any,
+        y_pred: np.ndarray | None = None,
+        predictor_names: list[str] | None = None,
+        plot: bool = True,
+    ) -> tuple[MetricSummary, ProblematicSampleMasks, DiagnosticPlots]:
+        """Analyze a statsmodels OLS model fit.
+
+        ``x`` may include an explicit constant (intercept) column, which is
+        detected automatically.
+
+        Args:
+            x: Feature matrix used for fitting the model (columns in fit order).
+            y: Ground truth values.
+            model: Fitted statsmodels OLS model or ``OLSResults``.
+            y_pred: Predicted target values. If None, ``model.fittedvalues`` is used.
+            predictor_names: Optional list of predictor names. If None, the
+                columns of ``x`` (excluding the constant, if present) are used.
+            plot: Same as in :meth:`analyze_sklearn`.
+
+        """
+        x_arr = np.atleast_2d(np.asarray(x, dtype=float))
+        is_const = np.all(x_arr == 1.0, axis=0)
+        has_intercept = bool(is_const.any())
+        n_columns = x_arr.shape[1]
+        fallback_names = [f"x{i}" for i in range(n_columns)]
+        columns = getattr(x, "columns", None)
+        column_names = [str(c) for c in (columns if columns is not None else fallback_names)]
+        kept = [i for i in range(n_columns) if not is_const[i]]
+        if predictor_names is None:
+            names = column_names if len(kept) == n_columns else [column_names[i] for i in kept]
+        else:
+            names = list(predictor_names)
+        if y_pred is None:
+            y_pred = model.fittedvalues
+        summary = FitSummary(
+            x=x_arr[:, kept] if has_intercept else x_arr,
+            y_true=np.asarray(y, dtype=float).ravel(),
+            y_pred=np.asarray(y_pred, dtype=float).ravel(),
+            dof=len(kept) + int(has_intercept),
+            has_intercept=has_intercept,
+            predictor_names=names,
+        )
+        return self.analyze(summary, plot=plot)
 
     def analyze(
         self, summary: FitSummary, plot: bool = True
