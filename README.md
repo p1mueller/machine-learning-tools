@@ -1,4 +1,4 @@
-# ml-tools
+# Machine Learning Tools
 
 Tools for machine learning: **model adequacy checking** (regression diagnostics) and
 ready-to-use **utility datasets**.
@@ -23,10 +23,6 @@ Requires Python >= 3.12 and [uv](https://docs.astral.sh/uv/).
 ```bash
 uv sync          # dependencies + editable install
 ```
-
-> Note: example datasets ship as CSV files in the `data/` directory of this
-> repository (not inside the built wheel). Use an editable/dev install, or keep the
-> repository checkout available, when using the built-in datasets.
 
 ## Quickstart
 

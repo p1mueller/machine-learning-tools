@@ -3,6 +3,6 @@
 from pathlib import Path
 
 
-def get_data_folder():
-    """Returns the path to the data folder."""
-    return Path(__file__).parents[2] / "data"
+def get_data_folder() -> Path:
+    """Returns the path to the package data folder."""
+    return Path(__file__).parent / "data"
