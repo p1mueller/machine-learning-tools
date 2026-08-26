@@ -38,20 +38,24 @@ x, y = dataset.train_data
 model = LinearRegression().fit(x, y)
 
 checker = ModelAdequacyChecker()
-metric, masks = checker.analyze_sklearn(
+metric, masks, plots = checker.analyze_sklearn(
     x.to_numpy(),
     y.to_numpy(),
     model,
     predictor_names=list(x.columns),
 )
-print(metric.rse)                 # residual standard error
+print(metric.r_squared)           # coefficient of determination
+print(metric.f_statistic)        # F-statistic
 print(metric.pretty_vif())       # Variance Inflation Factors
-plt.show()                        # six diagnostic figures
+plt.show()                       # six diagnostic figures
 ```
 
-`analyze(...)` returns `(MetricSummary, ProblematicSampleMasks)`; pass `plot=False`
-to only get the numbers. Thresholds and styling are configurable via `MACConfig`
-(e.g. `MACConfig(t_threshold=3.0, cook_distance_threshold=0.5)`).
+`analyze(...)` always returns
+`(MetricSummary, ProblematicSampleMasks, DiagnosticPlots)`. With
+`plot=True` (default) the figures are rendered immediately; with `plot=False`
+the plotters are returned unrendered, so you can call `plots.plot_all(masks)`
+later (useful in notebooks). Thresholds and styling are configurable via
+`MACConfig` (e.g. `MACConfig(t_threshold=3.0, cook_distance_threshold=0.5)`).
 
 ## Datasets
 

@@ -1,6 +1,10 @@
 """MAC main analysis class."""
 
+from typing import Any
+
 import numpy as np
+import pandas as pd
+from pydantic import BaseModel, ConfigDict
 from sklearn.linear_model import LinearRegression
 
 import ml_tools.mac.plot as macplot
@@ -8,6 +12,32 @@ from ml_tools.mac.config import MACConfig, get_default_config
 from ml_tools.mac.detection import ProblematicSampleMasks
 from ml_tools.mac.fit import FitSummary
 from ml_tools.mac.metric import MetricSummary
+
+
+class DiagnosticPlots(BaseModel):
+    """Diagnostic plotters created by :meth:`ModelAdequacyChecker.analyze`.
+
+    Plotters are constructed but not rendered, so figures can be created
+    later, where and when needed. Call :meth:`plot_all` to render them all.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    residuals: macplot.Plotter
+    scale_location: macplot.Plotter
+    qq: macplot.Plotter
+    sensitivity: macplot.Plotter
+    residual_correlation: macplot.Plotter
+    vif: macplot.Plotter
+
+    def plot_all(self, masks: ProblematicSampleMasks | None = None) -> None:
+        """Render every diagnostic plot.
+
+        Args:
+            masks: Optional problem point masks to highlight in the plots.
+        """
+        for plotter in self.model_dump().values():
+            plotter.plot(masks=masks)
 
 
 class ModelAdequacyChecker:
@@ -26,7 +56,7 @@ class ModelAdequacyChecker:
         y_pred: np.ndarray | None = None,
         predictor_names: list[str] | None = None,
         plot: bool = True,
-    ):
+    ) -> tuple[MetricSummary, ProblematicSampleMasks, DiagnosticPlots]:
         """Analyze a scikit-learn LinearRegression model fit.
 
         Args:
@@ -35,7 +65,10 @@ class ModelAdequacyChecker:
             model: Fitted scikit-learn LinearRegression model.
             y_pred: Predicted target values. If None, will be computed using the model.
             predictor_names: Optional list of predictor names. If None, default names will be used.
-            plot: Whether to generate diagnostic plots.
+            plot: Whether to render the diagnostic plots immediately. The
+                plotters are always returned unrendered in the
+                :class:`DiagnosticPlots` result.
+
         """
         if predictor_names is None:
             predictor_names = [f"x{i}" for i in range(x.shape[1])]
@@ -47,7 +80,7 @@ class ModelAdequacyChecker:
             y_true=y,
             y_pred=y_pred,
             dof=dof,
-            has_intercept=model.fit_intercept,
+            has_intercept=bool(model.fit_intercept),
             predictor_names=predictor_names,
         )
         return self.analyze(summary, plot=plot)
@@ -58,31 +91,48 @@ class ModelAdequacyChecker:
 
     def analyze(
         self, summary: FitSummary, plot: bool = True
-    ) -> tuple[MetricSummary, ProblematicSampleMasks]:
-        """Analyze the model fit summary and optionally plot diagnostic plots."""
+    ) -> tuple[MetricSummary, ProblematicSampleMasks, DiagnosticPlots]:
+        """Analyze the model fit summary and create diagnostic plots.
+
+        Args:
+            summary: A summary of the fitted model.
+            plot: Whether to render the diagnostic plots immediately. If False,
+                use the returned :class:`DiagnosticPlots` to render them later.
+
+        Example:
+            >>> metric, masks, plots = checker.analyze(summary, plot=False)  # doctest: +SKIP
+            >>> plots.plot_all(masks)  # render when and where needed  # doctest: +SKIP
+            >>> plt.show()  # doctest: +SKIP
+        """
         metric = MetricSummary(summary)
         masks = ProblematicSampleMasks.from_metric_summary(metric, self._config)
+        plots = DiagnosticPlots(**self._make_plotters(summary, metric))
 
         if plot:
-            vif_df = metric.pretty_vif(summary.predictor_names)
-            plotters = [
-                macplot.TukeyAnscombePlotter(summary.y_pred, summary.residuals, self._config),
-                macplot.ScaleLocationPlotter(
-                    summary.y_pred, metric.standardized_residuals, self._config
-                ),
-                macplot.QQPlotter(metric.standardized_residuals, config=self._config),
-                macplot.SensitivityPlotter(
-                    metric.leverage, metric.cook_metric, config=self._config
-                ),
-                macplot.ResidualCorrelationPlotter(
-                    summary.residuals, metric.residual_correlation, config=self._config
-                ),
-                macplot.VIFPlotter(vif_df, config=self._config),
-            ]
-            for plotter in plotters:
-                plotter.plot(masks=masks)
+            plots.plot_all(masks)
 
-        return metric, masks
+        return metric, masks, plots
+
+    def _make_plotters(
+        self, summary: FitSummary, metric: MetricSummary
+    ) -> dict[str, macplot.Plotter]:
+        vif_df = metric.pretty_vif(summary.predictor_names)
+        return {
+            "residuals": macplot.TukeyAnscombePlotter(
+                summary.y_pred, summary.residuals, self._config
+            ),
+            "scale_location": macplot.ScaleLocationPlotter(
+                summary.y_pred, metric.standardized_residuals, self._config
+            ),
+            "qq": macplot.QQPlotter(metric.standardized_residuals, config=self._config),
+            "sensitivity": macplot.SensitivityPlotter(
+                metric.leverage, metric.cook_metric, config=self._config
+            ),
+            "residual_correlation": macplot.ResidualCorrelationPlotter(
+                summary.residuals, metric.residual_correlation, config=self._config
+            ),
+            "vif": macplot.VIFPlotter(vif_df, config=self._config),
+        }
 
 
 MAC = ModelAdequacyChecker

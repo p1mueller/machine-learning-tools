@@ -57,10 +57,6 @@ class Plotter(abc.ABC):
             ax: Optional Matplotlib Axes object to plot on.
                 If None, a new figure and axes will be created.
             masks: Masks to highlight problematic samples in plot.
-
-        Returns:
-            Matplotlib Figure
-            Axes object
         """
         if ax is None:
             figsize = self._determine_figure_size(self._config)

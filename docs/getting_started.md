@@ -17,7 +17,7 @@ x, y = dataset.train_data
 model = LinearRegression().fit(x, y)
 
 # 3. Analyze: metrics + problem-point masks, and six diagnostic plots
-metric, masks = ModelAdequacyChecker().analyze_sklearn(
+metric, masks, plots = ModelAdequacyChecker().analyze_sklearn(
     x, y, model,
     predictor_names=list(x.columns),
 )
@@ -37,20 +37,23 @@ plt.show()                          # six diagnostic figures
 
 | Object | Type | Contents |
 |--------|------|----------|
-| `metric` | `MetricSummary` | `rse`, `rss`, `leverage`, `standardized_residuals`, `cooks_distance`, `vif`, `residual_correlation`, `pretty_vif()` |
+| `metric` | `MetricSummary` | `r_squared`, `adj_r_squared`, `f_statistic`, `rse`, `rss`, `leverage`, `standardized_residuals`, `cooks_distance`, `vif`, `residual_correlation`, `pretty_vif()` |
 | `masks` | `ProblematicSampleMasks` | boolean arrays `outliers`, `high_leverage`, `influential` and their union `combined` |
+| `plots` | `DiagnosticPlots` | six unrendered plotters: `residuals`, `scale_location`, `qq`, `sensitivity`, `residual_correlation`, `vif` |
 
 The six figures are: Tukey-Anscombe (residuals vs. fitted), scale-location,
 normal Q-Q, sensitivity (leverage vs. standardized residuals with Cook's-distance
 contours), residuals-vs-index, and the VIF bar chart.
 
-## Numbers only, no plots
-
-Pass `plot=False` to skip figure creation entirely, e.g. in notebooks or
-headless environments:
+With `plot=True` (default) the figures are rendered immediately. With
+`plot=False` the same `DiagnosticPlots` object is returned but nothing is
+rendered — call `plots.plot_all(masks)` later, wherever you need the figures:
 
 ```python
-metric, masks = ModelAdequacyChecker().analyze_sklearn(x, y, model, plot=False)
+metric, masks, plots = ModelAdequacyChecker().analyze_sklearn(x, y, model, plot=False)
+...
+plots.plot_all(masks)   # render all six figures now
+plt.show()
 ```
 
 ## Configuring thresholds and styling
@@ -63,9 +66,9 @@ from ml_tools import MACConfig
 config = MACConfig(
     t_threshold=3.0,                # |standardized residual| beyond which = outlier
     cook_distance_threshold=0.5,    # Cook's distance beyond which = influential
-    leverage_threshold_factor=4.0,  # factor over 2p/n = high leverage
+    leverage_threshold_factor=4.0,  # factor over dof/n for the high-leverage cut
 )
-metric, masks = ModelAdequacyChecker(config=config).analyze_sklearn(x, y, model)
+metric, masks, plots = ModelAdequacyChecker(config=config).analyze_sklearn(x, y, model)
 ```
 
 `MACConfig.colors` controls plot colors, grid lines, and marker style.
