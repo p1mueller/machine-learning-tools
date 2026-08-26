@@ -2,6 +2,8 @@
 name = "ml-tools"
 version = "0.1.0"
 description = "Model adequacy checking and utility datasets for linear regression."
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
