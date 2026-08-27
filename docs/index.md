@@ -15,6 +15,12 @@ publication-ready diagnostic plots.
   model into metrics, masks and plots.
 - **Diagnostic plots** — Tukey-Anscombe, scale-location, normal Q-Q, sensitivity
   (Cook's-distance contours), residual autocorrelation, and VIF bar chart.
+- **Reports** —
+  [TextReport](reference/ml_tools/mac/report/),
+  [MarkdownReport](reference/ml_tools/mac/report/) and
+  [HTMLReport](reference/ml_tools/mac/report/) turn any analysis into a
+  shareable report, with the diagnostic plots embedded as inline images in
+  HTML.
 - **Built-in datasets** —
   [AdvertisingDataset](reference/ml_tools/datasets/advertising/),
   [AutoDataset](reference/ml_tools/datasets/auto/) and

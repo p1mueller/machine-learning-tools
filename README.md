@@ -13,6 +13,9 @@ ready-to-use **utility datasets**.
   - sensitivity plot (leverage vs. standardized residuals with Cook's-distance contours)
   - residuals-vs-index (autocorrelation)
   - VIF bar chart
+- **Reports**: turn any analysis into a plain-text (`TextReport`), Markdown
+  (`MarkdownReport`) or self-contained HTML document (`HTMLReport`) with the
+  diagnostic plots embedded as inline images.
 - Bundled regression datasets loaded lazily: `AdvertisingDataset`, `AutoDataset`,
   `InjectionMoldingDataset`.
 
@@ -56,6 +59,16 @@ plt.show()                       # six diagnostic figures
 the plotters are returned unrendered, so you can call `plots.plot_all(masks)`
 later (useful in notebooks). Thresholds and styling are configurable via
 `MACConfig` (e.g. `MACConfig(t_threshold=3.0, cook_distance_threshold=0.5)`).
+
+### Reports
+
+```python
+from ml_tools import HTMLReport
+
+report = HTMLReport.from_analysis(metric, masks, plots)
+report.save("report.html")   # self-contained document, inline figures
+# TextReport / MarkdownReport work the same way — render() / save(path)
+```
 
 ## Datasets
 

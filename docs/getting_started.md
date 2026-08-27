@@ -41,6 +41,41 @@ plt.show()                          # six diagnostic figures
 | `masks` | `ProblematicSampleMasks` | boolean arrays `outliers`, `high_leverage`, `influential` and their union `combined` |
 | `plots` | `DiagnosticPlots` | six unrendered plotters: `residuals`, `scale_location`, `qq`, `sensitivity`, `residual_correlation`, `vif` |
 
+## Reports
+
+The analysis results can be turned into a shareable report in plain text,
+Markdown or HTML:
+
+```python
+from ml_tools import HTMLReport, MarkdownReport, TextReport
+
+# from_analysis renders the diagnostic plots into base64 PNGs,
+# so this is the only step that costs figure rendering
+html = HTMLReport.from_analysis(metric, masks, plots)
+html.save("report.html")       # self-contained document (inline figures)
+
+md = MarkdownReport.model_validate(html.model_dump())   # no re-rendering
+md.save("report.md")
+
+text = TextReport.model_validate(html.model_dump())
+text.save("report.txt")
+print(text.render())
+```
+
+What the report contains:
+
+| Section | Contents |
+|---------|----------|
+| **Model statistics** | `n_samples`, `n_features`, dof, $R^2$, adjusted $R^2$, RSE, RSS, TSS, F-statistic, residual autocorrelation |
+| **Predictors** | per-predictor VIF, flagged where `> vif_threshold` |
+| **Problematic samples** | indices of outliers, high-leverage and influential points |
+| **Diagnostic plots** | (HTML only) the six figures embedded as inline PNGs |
+
+The report is a pydantic model, so you can also use `report.to_dict()`,
+`report.to_dataframe()` or mutate it before rendering. Pick the adapter
+subclass to match the output you want — each implements `render()` and
+`save(path)`.
+
 The six figures are: Tukey-Anscombe (residuals vs. fitted), scale-location,
 normal Q-Q, sensitivity (leverage vs. standardized residuals with Cook's-distance
 contours), residuals-vs-index, and the VIF bar chart.
