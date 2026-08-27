@@ -3,6 +3,7 @@
 import base64
 import os
 from io import BytesIO
+from pathlib import Path
 from typing import Self
 
 import matplotlib.pyplot as plt
@@ -23,6 +24,9 @@ class PredictorReport(BaseModel):
     name: str = Field(description="Name of the predictor")
     vif: float = Field(description="Variance Inflation Factor of the predictor")
     flagged: bool = Field(description="Whether the VIF exceeds the configured threshold")
+    p_value: float | None = Field(
+        default=None, description="P-value for testing the coefficient against zero"
+    )
 
 
 class ProblemSummary(BaseModel):
@@ -57,8 +61,10 @@ class FigureImage(BaseModel):
     image: str = Field(description="Png image encoded as a data URI (data:image/png;base64,...)")
 
 
-def fmt(value: float) -> str:
-    """Format a numeric value, mapping NaN to ``n/a``."""
+def fmt(value: float | None) -> str:
+    """Format a numeric value, mapping NaN to ``n/a`` and None to ``n/a``."""
+    if value is None:
+        return "n/a"
     try:
         if np.isnan(value):
             return "n/a"
@@ -69,6 +75,16 @@ def fmt(value: float) -> str:
     ):
         return str(int(value))
     return f"{value:.4g}"
+
+
+def _optional_float(value: float) -> float | None:
+    """Convert an NaN (or non-finite) float to None for optional fields."""
+    try:
+        if not np.isfinite(value):
+            return None
+    except TypeError:
+        return None
+    return float(value)
 
 
 def vif_status(vif: float, threshold: float) -> str:
@@ -91,10 +107,10 @@ class MACReport(BaseModel):
 
     Holds the model statistics, per-predictor VIF diagnostics and the
     indices of problematic samples. It is data-only: rendering is delegated
-    to the adapter subclasses :class:`~ml_tools.mac.report.text.TextReport`,
-    :class:`~ml_tools.mac.report.markdown.MarkdownReport` and
-    :class:`~ml_tools.mac.report.html.HTMLReport`, each implementing
-    :meth:`render`.
+    to the adapter subclasses [`TextReport`][...TextReport],
+    [`MarkdownReport`][...MarkdownReport] and
+    [`HTMLReport`][...HTMLReport], each implementing
+    [`render`][.render].
     """
 
     title: str = Field(default="Model Adequacy Report", description="Title of the report")
@@ -108,6 +124,10 @@ class MACReport(BaseModel):
     rss: float = Field(description="Residual sum of squares")
     tss: float = Field(description="Total sum of squares")
     f_statistic: float = Field(description="Overall F-statistic of the model")
+    model_p_value: float = Field(
+        default=float("nan"),
+        description="P-value of the overall model F-test (all slopes zero)",
+    )
     residual_correlation: float = Field(description="First-lag autocorrelation of the residuals")
     vif_threshold: float = Field(description="VIF threshold used to flag predictors")
     predictors: list[PredictorReport] = Field(description="Per-predictor VIF diagnostics")
@@ -137,7 +157,7 @@ class MACReport(BaseModel):
             config: Optional configuration used for thresholds. If None, the
                 default configuration is used.
 
-        Example:
+        Examples:
             >>> checker = ModelAdequacyChecker()  # doctest: +SKIP
             >>> metric, masks, plots = checker.analyze(summary, plot=False)  # doctest: +SKIP
             >>> report = HTMLReport.from_analysis(metric, masks, plots)  # doctest: +SKIP
@@ -153,13 +173,16 @@ class MACReport(BaseModel):
             influential=np.flatnonzero(masks.influential).tolist(),
         )
         vif_df = metric.pretty_vif(summary.predictor_names)
+        coef_p = metric.coefficient_p_values
+        p_offset = 1 if summary.has_intercept else 0
         predictors = [
             PredictorReport(
                 name=name,
                 vif=float(vif),
                 flagged=float(vif) > config.vif_threshold,
+                p_value=_optional_float(coef_p[i + p_offset]),
             )
-            for name, vif in zip(vif_df.index, vif_df["VIF"])
+            for i, (name, vif) in enumerate(zip(vif_df.index, vif_df["VIF"]))
         ]
         figures = render_plotters(plots, masks=masks)
         return cls(
@@ -173,6 +196,7 @@ class MACReport(BaseModel):
             rss=metric.rss,
             tss=metric.tss,
             f_statistic=metric.f_statistic,
+            model_p_value=metric.model_p_value,
             residual_correlation=metric.residual_correlation,
             vif_threshold=config.vif_threshold,
             predictors=predictors,
@@ -201,6 +225,7 @@ class MACReport(BaseModel):
             "rss": self.rss,
             "tss": self.tss,
             "f_statistic": self.f_statistic,
+            "model_p_value": self.model_p_value,
             "residual_correlation": self.residual_correlation,
         }
         return pd.Series(stats).to_frame().T
@@ -240,6 +265,8 @@ class MACReport(BaseModel):
             path: Destination file path.
             max_indices: Maximum number of sample indices listed per category.
         """
+        path = Path(path)
+        os.makedirs(path.parent, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.render(max_indices=max_indices))
 
@@ -250,12 +277,13 @@ class MACReport(BaseModel):
             ("Number of features", float(self.n_features)),
             ("Intercept", float(self.has_intercept)),
             ("Degrees of freedom", float(self.dof)),
-            ("$R^2$", self.r_squared),
-            ("Adjusted $R^2$", self.adj_r_squared),
+            ("R²", self.r_squared),
+            ("Adjusted R²", self.adj_r_squared),
             ("RSE", self.rse),
             ("RSS", self.rss),
             ("TSS", self.tss),
             ("F-statistic", self.f_statistic),
+            ("Model p-value", self.model_p_value),
             ("Residual correlation (lag 1)", self.residual_correlation),
         ]
 
@@ -269,16 +297,16 @@ def render_plotters(
     dpi: int = 150,
     titles: dict[str, str] | None = None,
 ) -> list[FigureImage]:
-    """Render plotters into base64-encoded :class:`FigureImage` objects.
+    """Render plotters into base64-encoded [`FigureImage`][..FigureImage] objects.
 
     Figures created by this call are closed afterwards. Plotters that were
-    already rendered (see :meth:`~ml_tools.mac.plot.Plotter.figure`) are
+    already rendered (see [`Plotter.figure`][ml_tools.mac.plot.Plotter.figure] are
     reused and left open, so previously shown figures stay usable.
 
     Args:
-        plotters: A :class:`~ml_tools.mac.analyze.DiagnosticPlots` object or
+        plotters: A [`DiagnosticPlots`][ml_tools.mac.analyze.DiagnosticPlots] object or
             a mapping of name to plotter.
-        masks: Optional :class:`~ml_tools.mac.detection.ProblematicSampleMasks`
+        masks: Optional [`ProblematicSampleMasks`][ml_tools.mac.detection.ProblematicSampleMasks]
             to highlight problematic samples in the plots.
         dpi: Resolution used when saving the figures.
         titles: Optional override of figure titles, keyed by plot name.

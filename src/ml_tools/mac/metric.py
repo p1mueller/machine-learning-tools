@@ -6,6 +6,8 @@ from typing import Any, override
 
 import numpy as np
 import pandas as pd
+from scipy.stats import f as f_dist
+from scipy.stats import t as t_dist
 from sklearn.linear_model import LinearRegression
 
 from ml_tools.mac.fit import FitSummary
@@ -365,6 +367,61 @@ class MetricSummary:
         else:
             ssr = float(np.sum(self._summary.y_pred**2))
         return (ssr / k) / (self.rss / (n - p))
+
+    @property
+    def model_p_value(self) -> float:
+        r"""P-value of the overall F-test $H_0\colon$ all slopes are zero.
+
+        $$
+        p = P\left(F_{k,\, n - p} \ge F_{\text{obs}}\right)
+        $$
+        with `k` the number of slopes, matching statsmodels' `f_pvalue`.
+        Returns NaN when the F-statistic is undefined.
+        """
+
+        f_value = self.f_statistic
+        if np.isnan(f_value):
+            return float("nan")
+        n = self.n_samples
+        p = self.dof
+        k = p - 1 if self._summary.has_intercept else p
+        if n <= p:
+            return float("nan")
+        return float(f_dist.sf(f_value, k, n - p))
+
+    @property
+    def coef_se(self) -> np.ndarray:
+        """Standard errors of the OLS coefficients.
+
+        Ordered intercept first (if the model has an intercept) followed by
+        the predictors in fit order. Uses the pseudo-inverse of the
+        cross-product matrix, so rank-deficient designs yield finite values
+        for the estimable directions.
+        """
+        x = self._summary.x
+        if self._summary.has_intercept:
+            x = np.concatenate((np.ones((x.shape[0], 1)), x), axis=1)
+        cov = np.linalg.pinv(x.T @ x)
+        se = self.rse * np.sqrt(np.clip(np.diag(cov), 0.0, None))
+        return se
+
+    @property
+    def coefficient_p_values(self) -> np.ndarray:
+        r"""P-value per coefficient.
+
+        Two-sided p-values $\{P(|t| \ge |t_{\text{obs},i}|)\}$ for each OLS
+        coefficient ($H_0\colon \beta_i = 0$), ordered like [`coef_se`][..coef_se].
+        """
+        x = self._summary.x
+        if self._summary.has_intercept:
+            x = np.concatenate((np.ones((x.shape[0], 1)), x), axis=1)
+        coef = np.linalg.lstsq(x, self._summary.y_true, rcond=None)[0]
+        dof = self.n_samples - self.dof
+        if dof <= 0:
+            return np.full(coef.shape[0], float("nan"))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            t_values = np.abs(coef) / self.coef_se
+        return 2.0 * t_dist.sf(t_values, dof)
 
     @property
     def vif(self) -> np.ndarray:  # noqa: D102
