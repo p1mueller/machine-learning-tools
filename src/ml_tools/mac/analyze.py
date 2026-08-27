@@ -15,10 +15,10 @@ from ml_tools.mac.metric import MetricSummary
 
 
 class DiagnosticPlots(BaseModel):
-    """Diagnostic plotters created by :meth:`ModelAdequacyChecker.analyze`.
+    """Diagnostic plotters created by ``ModelAdequacyChecker.analyze``.
 
     Plotters are constructed but not rendered, so figures can be created
-    later, where and when needed. Call :meth:`plot_all` to render them all.
+    later, where and when needed. Call [`plot_all`][.plot_all] to render them all.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -49,7 +49,7 @@ class DiagnosticPlots(BaseModel):
         """The already-rendered ``(figure, axes)`` pairs, keyed by plot name.
 
         Plotters that have not been rendered yet are omitted. Render them with
-        :meth:`plot_all` first.
+        [`plot_all`][..plot_all] first.
         """
         return {
             name: plotter.plot()
@@ -85,7 +85,7 @@ class ModelAdequacyChecker:
             predictor_names: Optional list of predictor names. If None, default names will be used.
             plot: Whether to render the diagnostic plots immediately. The
                 plotters are always returned unrendered in the
-                :class:`DiagnosticPlots` result.
+                [`DiagnosticPlots`][ml_tools.mac.analyze.DiagnosticPlots] result.
 
         """
         if predictor_names is None:
@@ -124,7 +124,7 @@ class ModelAdequacyChecker:
             y_pred: Predicted target values. If None, ``model.fittedvalues`` is used.
             predictor_names: Optional list of predictor names. If None, the
                 columns of ``x`` (excluding the constant, if present) are used.
-            plot: Same as in :meth:`analyze_sklearn`.
+            plot: Same as in [`analyze_sklearn`][..analyze_sklearn].
 
         """
         x_arr = np.atleast_2d(np.asarray(x, dtype=float))
@@ -159,12 +159,13 @@ class ModelAdequacyChecker:
         Args:
             summary: A summary of the fitted model.
             plot: Whether to render the diagnostic plots immediately. If False,
-                use the returned :class:`DiagnosticPlots` to render them later.
+                use the returned [`DiagnosticPlots`][ml_tools.mac.analyze.DiagnosticPlots]
+                to render them later.
 
-        Example:
-            >>> metric, masks, plots = checker.analyze(summary, plot=False)  # doctest: +SKIP
-            >>> plots.plot_all(masks)  # render when and where needed  # doctest: +SKIP
-            >>> plt.show()  # doctest: +SKIP
+        Examples:
+            >>> metric, masks, plots = checker.analyze(summary, plot=False)
+            >>> plots.plot_all(masks)  # render when and where needed
+            >>> plt.show()
         """
         metric = MetricSummary(summary)
         masks = ProblematicSampleMasks.from_metric_summary(metric, self._config)

@@ -22,5 +22,6 @@ ty-reports/
 
 *.ipynb
 studs/
+examples/output
 .vscode
 .python-version

@@ -46,11 +46,15 @@ plugins:
             merge_init_into_class: true
             parameter_headings: true
             separate_signature: true
+            relative_crossrefs: true
             show_root_heading: true
             show_signature_annotations: true
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             summary: true
+            extensions:
+              - griffe_pydantic:
+                schema: true
   - api-autonav:
       modules: ["src/ml_tools"]
       module_options: {}
