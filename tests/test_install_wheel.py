@@ -32,8 +32,19 @@ def _venv_python() -> Path:
     return VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def _run_uv(uv: str, args: list[str]) -> None:
-    subprocess.run([uv, *args], check=True, cwd=ROOT, capture_output=True, text=True)
+def _run_uv(uv: str, args: list[str]) -> str:
+    """Run a uv command, returning its combined output.
+
+    Raises:
+        RuntimeError: With stdout and stderr if the command fails.
+    """
+    proc = subprocess.run([uv, *args], cwd=ROOT, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"command {' '.join([uv, *args])!r} failed with exit code {proc.returncode}\n"
+            f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+    return proc.stdout + proc.stderr
 
 
 @pytest.fixture(name="installed_python")
