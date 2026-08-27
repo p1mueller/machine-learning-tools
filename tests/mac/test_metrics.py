@@ -254,6 +254,78 @@ def test_f_statistic_perfect_fit(basic):
     assert np.isnan(metric.f_statistic)
 
 
+def test_model_p_value(basic):
+    """Test the overall model p-value against statsmodels' f_pvalue."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    metric = _metric_summary(x, y)
+    assert np.isclose(metric.model_p_value, result.f_pvalue)
+
+
+def test_model_p_value_no_intercept(basic):
+    """The overall p-value also matches statsmodels without an intercept."""
+    x, y, _ = basic
+    result = sm.OLS(y, x).fit()
+    summary = FitSummary(
+        x=x,
+        y_true=y,
+        y_pred=result.fittedvalues,
+        dof=int(result.df_model),
+        has_intercept=False,
+        predictor_names=[f"x{i}" for i in range(x.shape[1])],
+    )
+    metric = MetricSummary(summary)
+    assert np.isclose(metric.model_p_value, result.f_pvalue)
+
+
+def test_coefficient_standard_errors(basic):
+    """Coefficient SEs (intercept + slopes) match statsmodels' bse."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    metric = _metric_summary(x, y)
+    assert np.allclose(metric.coef_se, result.bse)
+
+
+def test_coefficient_p_values(basic):
+    """Per-coefficient p-values match statsmodels' pvalues."""
+    x, y, _ = basic
+    result = sm.OLS(y, sm.add_constant(x)).fit()
+    metric = _metric_summary(x, y)
+    assert np.allclose(metric.coefficient_p_values, result.pvalues)
+
+
+def test_coefficient_p_values_no_intercept(basic):
+    """Per-coefficient p-values match statsmodels without an intercept."""
+    x, y, _ = basic
+    result = sm.OLS(y, x).fit()
+    summary = FitSummary(
+        x=x,
+        y_true=y,
+        y_pred=result.fittedvalues,
+        dof=int(result.df_model),
+        has_intercept=False,
+        predictor_names=[f"x{i}" for i in range(x.shape[1])],
+    )
+    metric = MetricSummary(summary)
+    assert np.allclose(metric.coefficient_p_values, result.pvalues)
+
+
+def test_p_values_degenerate(basic):
+    """When residual degrees of freedom vanish, p-values are NaN."""
+    x, y, _ = basic
+    summary = FitSummary(
+        x=x[:3],
+        y_true=y[:3],
+        y_pred=y[:3],
+        dof=x.shape[1] + 1,
+        has_intercept=True,
+        predictor_names=[f"x{i}" for i in range(x.shape[1])],
+    )
+    metric = MetricSummary(summary)
+    assert np.all(np.isnan(metric.coefficient_p_values))
+    assert np.isnan(metric.model_p_value)
+
+
 if __name__ == "__main__":
     import pytest
 

@@ -100,7 +100,12 @@ class TestConstruction:
         assert np.isclose(report.rss, metric.rss)
         assert np.isclose(report.tss, metric.tss)
         assert np.isclose(report.f_statistic, metric.f_statistic)
+        assert np.isclose(report.model_p_value, metric.model_p_value)
         assert np.isclose(report.residual_correlation, metric.residual_correlation)
+        assert all(
+            np.isclose(p.p_value, pv)
+            for p, pv in zip(report.predictors, metric.coefficient_p_values[1:])
+        )
 
     def test_from_analysis_predictors_and_problems(self, result, report) -> None:
         """VIF table and problem indices are derived from metric and masks."""
@@ -198,7 +203,11 @@ class TestMarkdownReport:
         """The markdown document has the expected headings and tables."""
         md = _as(MarkdownReport, report).render()
         assert md.startswith("# Model Adequacy Report")
-        for section in ["| Metric | Value |", "| Name | VIF | Status |", "## Problematic Samples"]:
+        for section in [
+            "| Metric | Value |",
+            "| Name | VIF | p-value | Status |",
+            "## Problematic Samples",
+        ]:
             assert section in md
         assert md.endswith("\n")
 
@@ -228,7 +237,8 @@ class TestHTMLReport:
         assert "Model Adequacy Report" in html_doc
         for placeholder in [
             "__TITLE__",
-            "__STATS_ROWS__",
+            "__BADGE__",
+            "__STATS_CARDS__",
             "__PREDICTOR_ROWS__",
             "__PROBLEM_ROWS__",
             "__FIGURES_SECTION__",
