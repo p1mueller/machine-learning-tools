@@ -926,7 +926,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.3" },
     { name = "pydantic-numpy", specifier = ">=8.0.1" },
     { name = "scikit-learn", specifier = ">=1.7.2" },
-    { name = "statsmodels", specifier = ">=0.14.5" },
+    { name = "statsmodels", specifier = ">=0.14.5,<0.15" },
 ]
 
 [package.metadata.requires-dev]

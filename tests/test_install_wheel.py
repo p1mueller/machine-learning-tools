@@ -55,9 +55,21 @@ def _installed_python() -> Iterator[Path]:
     _run_uv(uv, ["build", "--wheel", "-o", str(DIST), "--no-build-logs"])
     wheel = next(DIST.glob("*.whl"))
     _run_uv(uv, ["venv", "--clear", str(VENV)])
+    # --only-binary fails fast on the common upstream accident of a release
+    # lacking wheels for this Python, instead of silently building an sdist
+    # that needs compilers the CI image does not have.
     _run_uv(
         uv,
-        ["pip", "install", "--python", str(_venv_python()), str(wheel), "pytest"],
+        [
+            "pip",
+            "install",
+            "--only-binary",
+            ":all:",
+            "--python",
+            str(_venv_python()),
+            str(wheel),
+            "pytest",
+        ],
     )
 
     yield _venv_python()
