@@ -43,12 +43,12 @@ class Plotter(abc.ABC):
 
     @property
     def figure(self) -> plt.Figure | None:
-        """The figure created by the last :meth:`plot` call, if any."""
+        """The figure created by the last [`plot`][..plot] call, if any."""
         return self._fig
 
     @property
     def axes(self) -> plt.Axes | None:
-        """The axes created by the last :meth:`plot` call, if any."""
+        """The axes created by the last [`plot`][..plot] call, if any."""
         return self._ax
 
     @abc.abstractmethod
@@ -436,6 +436,7 @@ class VIFPlotter(Plotter):
             ax.update_datalim(bbox.corners())
         ax.autoscale_view()
         ax.set_ylim(-0.5, len(values) - 0.5)
+        ax.yaxis.set_inverted(True)
 
 
 def _apply_lowess(x: np.ndarray, y: np.ndarray, config: MACConfig) -> np.ndarray:
