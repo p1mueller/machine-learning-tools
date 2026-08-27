@@ -38,6 +38,18 @@ class Plotter(abc.ABC):
         if config is None:
             config = get_default_config()
         self._config = config
+        self._fig: plt.Figure | None = None
+        self._ax: plt.Axes | None = None
+
+    @property
+    def figure(self) -> plt.Figure | None:
+        """The figure created by the last :meth:`plot` call, if any."""
+        return self._fig
+
+    @property
+    def axes(self) -> plt.Axes | None:
+        """The axes created by the last :meth:`plot` call, if any."""
+        return self._ax
 
     @abc.abstractmethod
     def _plot(self, ax: plt.Axes, masks: ProblematicSampleMasks | None = None) -> None:
@@ -58,17 +70,21 @@ class Plotter(abc.ABC):
                 If None, a new figure and axes will be created.
             masks: Masks to highlight problematic samples in plot.
         """
+        if self._ax is not None and self._fig is not None:
+            return self._fig, self._ax
         if ax is None:
             figsize = self._determine_figure_size(self._config)
             fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
         else:
             fig = ax.figure
+        assert isinstance(fig, plt.Figure)
         self._plot(ax, masks=masks)
         if self._config.grid_show:
             ax.grid(True, alpha=self._config.grid_alpha)
             ax.set_axisbelow(self._config.grid_below)
-        assert isinstance(fig, plt.Figure)
-        return fig, ax
+        self._fig = fig
+        self._ax = ax
+        return self._fig, self._ax
 
 
 class ScatterPlotter(Plotter):

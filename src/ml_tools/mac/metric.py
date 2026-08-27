@@ -268,6 +268,11 @@ class MetricSummary:
         self._residual_correlation = ResidualCorrelation(summary.residuals)
 
     @property
+    def summary(self) -> FitSummary:
+        """The underlying fit summary this metric summary was built from."""
+        return self._summary
+
+    @property
     def n_samples(self) -> int:  # noqa: D102
         return self._summary.n_samples
 

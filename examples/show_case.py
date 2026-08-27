@@ -1,10 +1,17 @@
-"""Example of using ModelAdequacyChecker to analyze a linear regression model."""
+"""Example of using ModelAdequacyChecker to analyze a linear regression model.
 
-import matplotlib.pyplot as plt
+Produces one report in each supported output format:
+
+- ``report.html``  — self-contained HTML document with the diagnostic plots
+                     embedded as inline PNGs
+- ``report.md``    — Markdown report (for docs / README)
+- ``report.txt``   — plain-text report (for console output)
+"""
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from ml_tools import ModelAdequacyChecker
+from ml_tools import HTMLReport, MarkdownReport, ModelAdequacyChecker, TextReport
 
 np.random.seed(42)
 n_samples = 100
@@ -29,7 +36,20 @@ model = LinearRegression()
 model.fit(x, y_true)
 y_pred = model.predict(x)
 
+# 1. Run the adequacy analysis once; the plotters stay unrendered here.
+metric, masks, plots = ModelAdequacyChecker().analyze_sklearn(
+    x, y_true, model, y_pred=y_pred, plot=True
+)
 
-checker = ModelAdequacyChecker()
-checker.analyze_sklearn(x, y_true, model, y_pred=y_pred, plot=True)
-plt.show()
+# 2. Build reports. from_analysis renders the diagnostic plots into
+#    base64 PNGs for embedding — so only the HTML report pays that cost.
+html = HTMLReport.from_analysis(metric, masks, plots)
+html.save("report.html")
+
+# 3. Convert between adapters without re-rendering the figures.
+md = MarkdownReport.model_validate(html.model_dump())
+md.save("report.md")
+
+text = TextReport.model_validate(html.model_dump())
+text.save("report.txt")
+print(text.render())

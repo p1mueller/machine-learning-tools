@@ -30,14 +30,32 @@ class DiagnosticPlots(BaseModel):
     residual_correlation: macplot.Plotter
     vif: macplot.Plotter
 
-    def plot_all(self, masks: ProblematicSampleMasks | None = None) -> None:
+    def plot_all(self, masks: ProblematicSampleMasks | None = None) -> dict[str, tuple]:
         """Render every diagnostic plot.
+
+        Already rendered plotter figures are returned as-is, so this method is
+        idempotent and safe to call repeatedly.
 
         Args:
             masks: Optional problem point masks to highlight in the plots.
+
+        Returns:
+            Mapping of plot name to its rendered ``(figure, axes)`` pair.
         """
-        for plotter in self.model_dump().values():
-            plotter.plot(masks=masks)
+        return {name: plotter.plot(masks=masks) for name, plotter in self.model_dump().items()}
+
+    @property
+    def figures(self) -> dict[str, tuple]:
+        """The already-rendered ``(figure, axes)`` pairs, keyed by plot name.
+
+        Plotters that have not been rendered yet are omitted. Render them with
+        :meth:`plot_all` first.
+        """
+        return {
+            name: plotter.plot()
+            for name, plotter in self.model_dump().items()
+            if plotter.figure is not None
+        }
 
 
 class ModelAdequacyChecker:
