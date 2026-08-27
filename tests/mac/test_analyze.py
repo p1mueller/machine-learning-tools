@@ -77,6 +77,23 @@ def test_plot_all_renders_all_six_figures() -> None:
     plt.close("all")
 
 
+def test_plot_all_is_idempotent_and_exposes_figures() -> None:
+    """Repeated plot_all calls reuse the cached figures instead of re-rendering."""
+    x, y = _make_data()
+    metric, masks, plots = ModelAdequacyChecker().analyze_sklearn(
+        x, y, _fit_sklearn(x, y), plot=False
+    )
+    assert plots.figures == {}
+    first = plots.plot_all(masks)
+    second = plots.plot_all(masks)
+    for name in first:
+        assert first[name][0] is second[name][0]
+    assert set(plots.figures) == set(first)
+    assert plots.residuals.figure is first["residuals"][0]
+    assert plots.residuals.axes is first["residuals"][1]
+    plt.close("all")
+
+
 def test_plot_true_renders_immediately() -> None:
     """With plot=True the figures are created during analyze."""
     x, y = _make_data()
