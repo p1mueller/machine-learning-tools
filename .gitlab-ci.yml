@@ -27,7 +27,7 @@ uv:
       paths:
         - $UV_CACHE_DIR
   script:
-    - apt update && apt install gcc
+    - apt update && apt install -y gcc
     - uv sync --frozen
     - uv cache prune --ci
 
