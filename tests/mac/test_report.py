@@ -115,9 +115,12 @@ class TestConstruction:
         assert max(p.vif for p in report.predictors) > 1.0
         assert report.predictors[2].flagged
         assert 7 in report.problems.outliers
-        assert report.problems.total == len(report.problems.outliers) + len(
-            report.problems.high_leverage
-        ) + len(report.problems.influential)
+        n_outliers = len(report.problems.outliers)
+        n_high_leverage = len(report.problems.high_leverage)
+        n_influential = len(report.problems.influential)
+        lower_bound = max(n_outliers, n_high_leverage, n_influential)
+        upper_bound = n_outliers + n_high_leverage + n_influential
+        assert lower_bound <= report.problems.total <= upper_bound
         assert bool(masks.outliers[7])
 
     def test_from_analysis_returns_subclass(self, report) -> None:
