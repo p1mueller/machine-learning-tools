@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 from pathlib import Path
 from typing import Self
+from urllib.parse import quote
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -269,6 +270,7 @@ class MACReport(BaseModel):
         os.makedirs(path.parent, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             f.write(self.render(max_indices=max_indices))
+        print(f"Saved report at {path_as_url(path)}")
 
     def _stat_pairs(self) -> list[tuple[str, float]]:
         """Model statistics as ``(label, value)`` pairs in display order."""
@@ -328,3 +330,9 @@ def render_plotters(
         encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
         figures.append(FigureImage(title=title, image=f"data:image/png;base64,{encoded}"))
     return figures
+
+
+def path_as_url(path: Path) -> str:
+    """Format a path as a clickable terminal hyperlink (OSC 8) in cyan."""
+    url = "file://" + quote(str(path))
+    return f"\033]8;;{url}\033\\\033[96m{path}\033[0m\033]8;;\033\\"
