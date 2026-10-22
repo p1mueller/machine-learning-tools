@@ -52,7 +52,7 @@ class ProblemSummary(BaseModel):
     @property
     def total(self) -> int:
         """Total number of flagged sample indices across all categories."""
-        return len(self.outliers) + len(self.high_leverage) + len(self.influential)
+        return len(set(self.outliers + self.high_leverage + self.influential))
 
 
 class FigureImage(BaseModel):
